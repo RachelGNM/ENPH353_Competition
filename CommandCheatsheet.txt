@@ -1,0 +1,11 @@
+Essentially replace ros_ws with ENPH353_Competition
+
+Source:
+source ~/ros_ws/devel/setup.bash
+
+Run environment:
+cd ~/ros_ws/src/2024_competition/enph353/enph353_utils/scripts
+./run_sim.sh -vpgw
+
+Score tracker:
+./score_tracker.py
