@@ -21,6 +21,7 @@ class Driver:
         self.endpoint = 240
 
         self.zone = 0
+        # self.clues_read[] = [0] * 8
         self.clue = 0
         
         # Publishers
@@ -46,13 +47,46 @@ class Driver:
         except Exception as e:
             rospy.logerr(f"Error converting image: {e}")
         
+
         #TODO: make a code that decides what it's looking for
         # @param self.zone (zone 0 is the beginning until the pedestrian, zone 1 is the pedestrian, zone 2 is the car, zone 3 is the new biome)
         # @param: self.clue references which clue we're at
 
-        if self.zone == 0 AND self.clue == 0:
-            if check_red() == false:
-                
+        #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
+
+        if self.zone == 0:
+            if self.clue == 0:
+                #TODO: linefollow until find clueboard
+            else:
+                if check_red() == false:
+                    #TODO: Line follow
+                else:
+                    #TODO: make the robot stop and wait for the pedestrian to cross then zoom through
+                    self.zone = 1
+        elif self.zone == 1:
+            if self.clue == 1:
+                #TODO: line follow but stay right until you see the sign
+            else:
+                #TODO: line follow but stay left until you see the sign
+                #TODO: Look for the car
+        elif self.zone == 2:
+            #TODO: wait for the car to pass then turn left, line follow, then stay left again
+            #TODO: when see the pink line, self.zone++
+        elif self.zone == 3:
+            #TODO: Change the image processing for the other biome then line follow
+            #TODO: when clue == 5, self.zone++
+        elif self.zone == 4:
+            #TODO: Do not check for a clueboard until after traversing the long route
+            #TODO: when you see the pink line, self.zone++
+        elif self.zone == 5:
+            #TODO: Wait for baby yoda
+            #TODO: Hardcode following baby yoda's track, getting clueboard, and arriving at the tunnel entrance
+            #TODO: when see the pink line, increment self.zone
+        elif self.zone == 5:
+            #TODO: Line follow up the mountain and read sign
+        
+
+
                 
 
 
