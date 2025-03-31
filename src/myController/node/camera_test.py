@@ -63,7 +63,7 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        self.three_way_intersection(cv_image)
+        self.test_find_blue(cv_image, True)
 
         # true = self.road.detect_movement(self.prev_image, cv_image)
         self.prev_image = cv_image
@@ -118,12 +118,19 @@ class CameraTesting:
         # cv2.imshow("Gray Feed", gray_frame)
         # image = cv_image[height // 2:, :, :]
 
-    def test_find_blue (self, cv_image):
+    def test_find_blue (self, cv_image, left):
+        height, width, _ = cv_image.shape
+
+        if left:
+            cv_image = cv_image[7 * height // 12:2 * height // 3,: width // 8,:]
+        else:
+            cv_image = cv_image[7 * height // 12:2 * height // 3,7 * width // 8:,:]
+
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
         # Define HSV range for blue
-        lower_blue = np.array([90, 120, 100])  # Lower bound for blue
-        upper_blue = np.array([130, 180, 200])  # Upper bound for blue
+        lower_blue = np.array([90, 90, 90])  # Lower bound for blue
+        upper_blue = np.array([130, 255, 255])  # Upper bound for blue
 
         # Create mask
         blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -131,9 +138,11 @@ class CameraTesting:
         # Convert all previously white pixels (255) to black (0)
         processed_image = cv2.bitwise_and(cv_image, cv_image, mask=blue_mask)
 
-        line_image = processed_image[:, :, 2]  # Extract the B channel from BGR
+        line_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
 
-        cv2.imshow("Blue",line_image)
+        _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
+
+        cv2.imshow("Blue",img_bin)
         cv2.imshow("pro", processed_image)
         cv2.waitKey(1)
 

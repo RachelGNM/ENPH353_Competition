@@ -110,6 +110,9 @@ class Driver:
             # rospy.loginfo("No stop")
             if new_clue:
                 #TODO: read the clue and save the information from it
+                right_image, left_image = self.sidecam.get_image()
+                cv2.imshow("right", right_image)
+                cv2.imshow("left", left_image)
 
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
@@ -145,7 +148,7 @@ class Driver:
             #     img_bin = self.road_reader.road_binarize(cv_image, self.zone)
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
-            elif self.zone == 1:
+            if self.zone == 1:
                 # rospy.loginfo("Stop at zone 1")
                 self.obstacle_passed = self.wait_for_movement(cv_image, 1, 0, 3)
                 if self.obstacle_passed:

@@ -134,10 +134,12 @@ class RoadProcessing:
         return False  # No horizontal crosswalk detected
 
     def detect_sign(self, image, sign_number):
+        height, width, _ = image.shape
+        image = image[height // 2 :, :,:]
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Define HSV range for blue
-        lower_blue = np.array([110, 150, 200])  # Lower bound for blue
+        lower_blue = np.array([90, 90, 90])  # Lower bound for blue
         upper_blue = np.array([130, 255, 255])  # Upper bound for blue
 
         # Create mask
@@ -178,7 +180,7 @@ class RoadProcessing:
             if len(contour) > 100:  # Ignore small noise
                 rospy.loginfo(f"Large contour: {len(contour)}")
                 return True
-                
+
         return False
 
 
