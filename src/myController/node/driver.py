@@ -27,6 +27,11 @@ class Driver:
         #this is to map where the robot is on the map
         self.zone = 0
         self.clue = 0
+
+        #for clue reading logic
+        self.clues_seen = 0
+        self.ready_to_read = False
+        self.clue_isRead = False
         #self.find_clueboard = False
         
         # Publishers
@@ -81,9 +86,12 @@ class Driver:
         except Exception as e:
             rospy.logerr(f"Error converting image: {e}")
 
+        #Look for all scenarios which require anything other than generic line following
         self.zone, stopping_line = self.road_reader.stopping_point(cv_image, self.zone)
-        truck = self.clue == 3 and self.zone == 2
-        stop = stopping_line or self.zone == 6 or truck
+        truck = (self.zone == 3)
+        self.clues_seen, clue_spotted = self.road_reader.detect_sign(cv_image,self.clue)
+        new_clue = (self.clues_seen != self.clue)
+        stop = stopping_line or (self.zone == 6) or truck or new_clue
 
         if stop == False:
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
@@ -95,6 +103,23 @@ class Driver:
             #make sure it actually stops
             self.move.linear.x = 0
             self.move.angular.z = 0
+
+            #This is checking for clueboards first ahead of zone switches
+            # if new_clue:
+            #     rospy.loginfo("Looking for clueboard")
+            #     direction = 0
+            #     if (self.clue % 2) == 0:
+            #         rospy.loginfo("Turning left for clueboard")
+            #         direction = -1
+            #     else:
+            #         rospy.loginfo("Turning right for clueboard")
+            #         #Same as above, opposite direction
+            #         direction = 1
+            #     findclue = self.wait_for_clue(cv_image,direction)
+            #     if findclue:
+            #         self.clue = self.clues_seen
+            #         if self.clue == 3:
+            #             self.zone = 3
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
@@ -116,7 +141,9 @@ class Driver:
                 #TODO: Yoda-land should be completed with car facing the correct way to line-follow
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
-        
+
+        cv2.imshow("camera feed", cv_image)
+
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
         #author: Alfred
@@ -190,6 +217,33 @@ class Driver:
             self.move.linear.x = 0
             self.move.angular.z = 0
             self.prev_waiting = True
+        self.cmd_vel_pub.publish(self.move)
+        return False
+
+    def wait_for_clue(self, image, direction):
+        #Wait for thing to cross, then zoom through
+        #TODO: insert Alfred's recognize clueboard function here
+        if self.ready_to_read: #TODO: this should depend on clueboard finding function
+            self.ready_to_read = True
+
+        if self.ready_to_read:
+            rospy.loginfo("Robot has full view of clueboard")
+            if self.clue_isRead:
+                #if the clueboard has been read, turn back towards the road
+                self.move.angular.z = direction 
+                #TODO: insert delay or other way to get back to the road
+                self.cmd_vel_pub.publish(self.move)
+                return True
+            else:
+                rospy.loginfo("Waiting to read clueboard")
+                #if there has been no clue read, must read the clueboard
+                if True: #TODO: insert Alfred's function here to read a clueboard
+                    self.clue_isRead = True
+        else:
+            rospy.loginfo("Robot found clueboard, rotating to find clueboard")
+            #The robot stops moving after initial stop
+            self.move.linear.x = 0
+            self.move.angular.z = direction
         self.cmd_vel_pub.publish(self.move)
         return False
 

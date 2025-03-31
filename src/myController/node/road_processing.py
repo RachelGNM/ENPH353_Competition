@@ -115,8 +115,38 @@ class RoadProcessing:
 
         return False  # No horizontal crosswalk detected
 
+    def detect_sign(self, image, sign_number):
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+        # Define HSV range for blue
+        lower_blue = np.array([110, 150, 200])  # Lower bound for blue
+        upper_blue = np.array([130, 255, 255])  # Upper bound for blue
+
+        # Create mask
+        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+        # Convert all previously white pixels (255) to black (0)
+        processed_image = cv2.bitwise_and(image, image, mask=blue_mask)
+
+        # Check if any blue pixels are found
+        if np.any(blue_mask):
+            return sign_number + 1, True  # Blue detected
+        else:
+            return sign_number, False  # No blue detected
+
     def detect_movement(self, prev_image, image):
         rospy.loginfo("Detecting movement")
-        return False
+
+        prev_gray = cv2.cvtColor(prev_image, cv2.COLOR_BGR2GRAY)
+        curr_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        #Calculate the difference between the images
+        diff = cv2.absdiff(prev_gray,curr_gray)
+
+        _, threshold = cv2.threshold(diff,threshold_value, 255, cv2.THRESH_BINARY)
+
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        return len(contours) > 0
 
 

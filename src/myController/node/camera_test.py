@@ -28,8 +28,8 @@ class CameraTesting:
 
         self.bridge=CvBridge()
 
-        self.threshold = 185
-        self.wall_threshold = 80
+        self.threshold = 90
+        self.wall_threshold = 82
         self.last_error = 0
 
         rospy.sleep(2)  # Ensure publishers are ready
@@ -57,7 +57,29 @@ class CameraTesting:
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         except Exception as e:
             rospy.logerr(f"Error converting image: {e}")
+        cv2.imshow("Input", cv_image)
 
+        self.main_road(cv_image)
+        cv2.waitKey(1)
+
+        
+    def main_road(self, cv_image):
+        #Convert frame to binary
+        blur_frame = cv2.GaussianBlur(cv_image, (5, 5), 0)
+        # gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = blur_frame[:,:,1]
+        frame_no_wall = np.where((gray_frame < self.wall_threshold), 255, gray_frame)
+        _, img_bin = cv2.threshold(frame_no_wall, self.threshold, 255, cv2.THRESH_BINARY)
+        # cv2.imshow("Bin Feed 1", img_bin)
+        # cv2.imshow("No Wall Feed 1", frame_no_wall)
+        # Get image dimensions
+        height, width = img_bin.shape
+        # Turn the top half white
+        img_bin[:height // 3, :] = [255]
+
+        cv2.imshow("Bin", img_bin)
+
+    def grass_road(self, cv_image):
         #Convert frame to binary
         blur_frame = cv2.GaussianBlur(cv_image, (5, 5), 0)
         #gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
@@ -68,8 +90,28 @@ class CameraTesting:
         # Turn the top half white
         img_bin[:2 * height // 3, :] = [255]
         
-        cv2.imshow("Bin Feed", img_bin)
-        cv2.imshow("Gray Feed", gray_frame)
+        # cv2.imshow("Bin Feed", img_bin)
+        # cv2.imshow("Gray Feed", gray_frame)
+        # image = cv_image[height // 2:, :, :]
+
+    def test_find_blue (self, cv_image):
+        hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+        # Define HSV range for blue
+        lower_blue = np.array([90, 120, 100])  # Lower bound for blue
+        upper_blue = np.array([130, 180, 200])  # Upper bound for blue
+
+        # Create mask
+        blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+        # Convert all previously white pixels (255) to black (0)
+        processed_image = cv2.bitwise_and(cv_image, cv_image, mask=blue_mask)
+
+        line_image = processed_image[:, :, 2]  # Extract the B channel from BGR
+
+        cv2.imshow("Blue",line_image)
+        cv2.imshow("pro", processed_image)
+        cv2.waitKey(1)
 
     def test_red_and_fuchsia (self,cv_image):
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
