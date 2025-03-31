@@ -29,15 +29,13 @@ class RoadProcessing:
 
 
     def stopping_point(self, image_feed, zone):
-        #TODO: if the line (either red or fuchsia) is found return true
-        #TODO: figure out how to binarize image to show only red or fuchsia line without including white line
         height, width, _ = image_feed.shape
         line_image = image_feed[3* height // 4:, :]
         hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
         height_after, _, _ = line_image.shape
         height_threshold = height_after // 2
-        if zone < 2:
+        if zone == 2:
             #rospy.loginfo("Checking for red line")
             # Define HSV range for red color (two ranges needed for red hue wrap-around)
             lower_red1 = np.array([0, 100, 100])   # Lower range of red
@@ -55,10 +53,9 @@ class RoadProcessing:
 
             # Extract only the red channel
             line_image = processed_image[:, :, 2]  # Extract the R channel from BGR
-
-            zone = 1
+            
         elif zone > 3: #looking for fuchsia lines
-            rospy.loginfo("Checking for fuchsia line")
+            # rospy.loginfo("Checking for fuchsia line")
             # Define HSV range for fuchsia/magenta
             lower_fuchsia = np.array([140, 100, 100])  # Lower bound
             upper_fuchsia = np.array([165, 255, 255])  # Upper bound
@@ -75,9 +72,6 @@ class RoadProcessing:
 
             # Combine red and blue channels
             line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
-            zone += 1
-        #TODO: define for zone 2 --> zone 3 (aka for the car, must just wait for clue = 3)
-        #Check if the bottom area of image is mostly white
         
         cv2.imshow("image", line_image)
         cv2.waitKey(1)
@@ -94,11 +88,23 @@ class RoadProcessing:
         # Get the highest white pixel (smallest y-value)
         topmost_white_pixel = np.min(white_pixels[0])  # y-coordinate
 
+        found = (topmost_white_pixel >= height_threshold and self.detect_horizontal_line(binary))
+
+        if found:
+            if zone < 2:
+                zone = 1
+
+            elif zone > 3:
+                zone += 1
+
         # Return True if the white line reaches the threshold
-        return zone, (topmost_white_pixel >= height_threshold and self.detect_horizontal_line(binary))
+        return zone, found
 
 
     def detect_horizontal_line(self, binary_image):
+        if len(binary_image.shape) == 3:
+            binary_image = cv2.cvtColor(binary_image, cv2.COLOR_BGR2GRAY)
+
         contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         for contour in contours:
@@ -136,17 +142,60 @@ class RoadProcessing:
 
     def detect_movement(self, prev_image, image):
         rospy.loginfo("Detecting movement")
+        height, width, _ = prev_image.shape
 
-        prev_gray = cv2.cvtColor(prev_image, cv2.COLOR_BGR2GRAY)
-        curr_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        prev_image = prev_image[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
+        image = image[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
 
-        #Calculate the difference between the images
-        diff = cv2.absdiff(prev_gray,curr_gray)
+        # threshold_value = 40
 
-        _, threshold = cv2.threshold(diff,threshold_value, 255, cv2.THRESH_BINARY)
+        # prev_gray = cv2.cvtColor(prev_image, cv2.COLOR_BGR2GRAY)
+        # curr_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # # Apply GaussianBlur to reduce noise
+        # prev_gray = cv2.GaussianBlur(prev_gray, (21, 21), 0)
+        # curr_gray = cv2.GaussianBlur(curr_gray, (21, 21), 0)
 
-        return len(contours) > 0
+        # #Calculate the difference between the images
+        # diff = cv2.absdiff(prev_gray,curr_gray)
+
+        # _, threshold = cv2.threshold(diff,threshold_value, 255, cv2.THRESH_BINARY)
+
+        # threshold = cv2.dilate(threshold, None, iterations=2)
+
+        # cv2.imshow("movement", threshold)
+
+        # contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # if len(contours) > 0:
+        #     rospy.loginfo("Movement detected!")
+        #     return True
+        # else:
+        #     rospy.loginfo("No movement detected.")
+        #     return False
+
+
+        # Apply background subtraction to the current frame
+        fg_mask = cv2.createBackgroundSubtractorMOG2().apply(image)
+
+        # Optional: Dilate the mask to make contours more prominent
+        fg_mask = cv2.dilate(fg_mask, None, iterations=2)
+
+        # Find contours in the foreground mask
+        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Draw the contours on the image for debugging purposes
+        cv2.drawContours(image, contours, -1, (0, 255, 0), 2)
+
+        # Show the original frame with contours drawn
+        cv2.imshow("Detected Movement", image)
+
+        # If there are any contours, it means there is movement
+        if len(contours) > 0:
+            rospy.loginfo("Movement detected!")
+            return True
+        else:
+            rospy.loginfo("No movement detected.")
+            return False
 
 
