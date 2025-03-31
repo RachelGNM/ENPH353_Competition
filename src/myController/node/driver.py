@@ -7,8 +7,10 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+import time
 
 from road_processing import RoadProcessing
+from motion_detector import MotionDetector
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -18,6 +20,7 @@ class Driver:
         rospy.init_node('driver', anonymous=True)
 
         self.road_reader = RoadProcessing()
+        self.motion_detector = MotionDetector()
 
         self.timer_started = False
         self.timer_ended = False
@@ -42,11 +45,15 @@ class Driver:
 
         self.bridge=CvBridge()
 
+        #Movement stuff
         self.threshold = 100
         self.Kp = 0.6
         self.Kd = 0.2
         self.move = Twist()
         self.last_error = 0
+
+        #Pedestrian movement
+        self.movement_start_time = None  # Time when the movement started
 
         #These are for finding movement
         self.previous_image = np.zeros((800,800,3), dtype=np.uint8)
@@ -90,42 +97,45 @@ class Driver:
         self.zone, stopping_line = self.road_reader.stopping_point(cv_image, self.zone)
         truck = (self.zone == 3)
         self.clues_seen, clue_spotted = self.road_reader.detect_sign(cv_image,self.clue)
-        new_clue = (self.clues_seen != self.clue)
-        stop = stopping_line or (self.zone == 6) or truck or new_clue
+        #new_clue = (self.clues_seen != self.clue)
+        stop = stopping_line or (self.zone == 6) or truck #or new_clue
 
         if stop == False:
+            rospy.loginfo("No stop")
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
             self.obstacle = False
             self.line_follow(img_bin)
         else:
             rospy.loginfo("Stop started")
+            rospy.loginfo(f"Zone: {self.zone}")
             #make sure it actually stops
             self.move.linear.x = 0
             self.move.angular.z = 0
 
-            This is checking for clueboards first ahead of zone switches
-            if new_clue:
-                rospy.loginfo("Looking for clueboard")
-                direction = 0
-                if (self.clue % 2) == 0:
-                    rospy.loginfo("Turning left for clueboard")
-                    direction = -1
-                else:
-                    rospy.loginfo("Turning right for clueboard")
-                    #Same as above, opposite direction
-                    direction = 1
-                findclue = self.wait_for_clue(cv_image,direction)
-                if findclue:
-                    self.clue = self.clues_seen
-                    if self.clue == 3:
-                        self.zone = 3
+            # This is checking for clueboards first ahead of zone switches
+            # if new_clue:
+            #     rospy.loginfo("Looking for clueboard")
+            #     direction = 0
+            #     if (self.clue % 2) == 0:
+            #         rospy.loginfo("Turning left for clueboard")
+            #         direction = -1
+            #     else:
+            #         rospy.loginfo("Turning right for clueboard")
+            #         #Same as above, opposite direction
+            #         direction = 1
+            #     findclue = self.wait_for_clue(cv_image,direction)
+            #     if findclue:
+            #         self.clue = self.clues_seen
+            #         if self.clue == 3:
+            #             self.zone = 3
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
                 rospy.loginfo("Stop at zone 1")
-                movement = self.wait_for_movement(cv_image, 1, 0, 1)
+                movement = self.wait_for_movement(cv_image, 1, 0, 3)
                 if movement == True:
+                    rospy.loginfo("Zone 1 Complete!")
                     self.zone = 2
             elif self.zone == 2:
                 #TODO: Wait for truck then turn left, line follow, and turn left at intersection again
@@ -197,18 +207,26 @@ class Driver:
             rospy.loginfo("Previous waiting was activated")
             if self.obstacle:
                 #if there is movement found and we're waiting, then run forward
-                if self.road_reader.detect_movement(self.previous_image, image):
+                if not self.motion_detector.detect_movement(image, self.zone):
                     self.move.linear.x = forward_movement
                     self.move.angular.z = turn
-                    #put a delay here so it actually goes through
                     self.cmd_vel_pub.publish(self.move)
+                    rospy.loginfo("Movement started!")
+                    time.sleep(delay)
+                    # Stop the robot after 1 second
+                    self.move.linear.x = 0
+                    self.move.angular.z = 0
+                    self.cmd_vel_pub.publish(self.move)
+                    rospy.loginfo("Movement duration completed, stopping robot.")
                     return True
             else:
                 rospy.loginfo("Waiting to detect movement")
                 #if there has been no previous movement found, wait till movement is found
-                if self.road_reader.detect_movement(self.previous_image, image):
+                if self.motion_detector.detect_movement(image, self.zone):
+                    rospy.loginfo("Movement detected")
                     self.obstacle = True
                 else:
+                    rospy.loginfo("No movement, waiting for passerby")
                     self.move.linear.x = 0
                     self.move.angular.z = 0
         else:
@@ -218,6 +236,7 @@ class Driver:
             self.move.angular.z = 0
             self.prev_waiting = True
         self.cmd_vel_pub.publish(self.move)
+        time.sleep(0.05)
         return False
 
     def wait_for_clue(self, image, direction):
