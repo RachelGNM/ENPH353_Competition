@@ -104,22 +104,22 @@ class Driver:
             self.move.linear.x = 0
             self.move.angular.z = 0
 
-            #This is checking for clueboards first ahead of zone switches
-            # if new_clue:
-            #     rospy.loginfo("Looking for clueboard")
-            #     direction = 0
-            #     if (self.clue % 2) == 0:
-            #         rospy.loginfo("Turning left for clueboard")
-            #         direction = -1
-            #     else:
-            #         rospy.loginfo("Turning right for clueboard")
-            #         #Same as above, opposite direction
-            #         direction = 1
-            #     findclue = self.wait_for_clue(cv_image,direction)
-            #     if findclue:
-            #         self.clue = self.clues_seen
-            #         if self.clue == 3:
-            #             self.zone = 3
+            This is checking for clueboards first ahead of zone switches
+            if new_clue:
+                rospy.loginfo("Looking for clueboard")
+                direction = 0
+                if (self.clue % 2) == 0:
+                    rospy.loginfo("Turning left for clueboard")
+                    direction = -1
+                else:
+                    rospy.loginfo("Turning right for clueboard")
+                    #Same as above, opposite direction
+                    direction = 1
+                findclue = self.wait_for_clue(cv_image,direction)
+                if findclue:
+                    self.clue = self.clues_seen
+                    if self.clue == 3:
+                        self.zone = 3
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
