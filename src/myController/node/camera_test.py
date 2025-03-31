@@ -7,6 +7,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from road_processing import RoadProcessing
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -31,6 +32,9 @@ class CameraTesting:
         self.threshold = 90
         self.wall_threshold = 82
         self.last_error = 0
+
+        self.road = RoadProcessing()
+        self.prev_image = None
 
         rospy.sleep(2)  # Ensure publishers are ready
 
@@ -59,7 +63,10 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        self.main_road(cv_image)
+        true = self.road.detect_movement(self.prev_image, cv_image)
+        self.prev_image = cv_image
+
+        rospy.loginfo(f"Movement detected = {true}")
         cv2.waitKey(1)
 
         
@@ -75,7 +82,7 @@ class CameraTesting:
         # Get image dimensions
         height, width = img_bin.shape
         # Turn the top half white
-        img_bin[:height // 3, :] = [255]
+        img_bin[:height // 2, :] = [255]
 
         cv2.imshow("Bin", img_bin)
 
