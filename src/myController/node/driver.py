@@ -11,6 +11,7 @@ import time
 
 from road_processing import RoadProcessing
 from motion_detector import MotionDetector
+from side_camera import SideCam
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -21,6 +22,7 @@ class Driver:
 
         self.road_reader = RoadProcessing()
         self.motion_detector = MotionDetector()
+        self.sidecam = SideCam()
 
         self.timer_started = False
         self.timer_ended = False
@@ -28,7 +30,7 @@ class Driver:
         self.endpoint = 30
 
         #this is to map where the robot is on the map
-        self.zone = 3
+        self.zone = 0
         self.clue = 0
 
         #for clue reading logic
@@ -106,6 +108,9 @@ class Driver:
 
         if stop == False:
             # rospy.loginfo("No stop")
+            if new_clue:
+                #TODO: read the clue and save the information from it
+
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
             self.obstacle = False
@@ -114,29 +119,33 @@ class Driver:
         else:
             # rospy.loginfo("Stop started")
             # rospy.loginfo(f"Zone: {self.zone}")
-            #make sure it actually stops
+            # make sure it actually stops
             self.move.linear.x = 0
             self.move.angular.z = 0
 
-            # This is checking for clueboards first ahead of zone switches
+            # # This is checking for clueboards first ahead of zone switches
             # if new_clue:
             #     rospy.loginfo("Looking for clueboard")
-            #     direction = 0
-            #     if (self.clue % 2) == 0:
-            #         rospy.loginfo("Turning left for clueboard")
-            #         direction = -1
-            #     else:
-            #         rospy.loginfo("Turning right for clueboard")
-            #         #Same as above, opposite direction
-            #         direction = 1
-            #     findclue = self.wait_for_clue(cv_image,direction)
+            #     # direction = 0
+            #     # if (self.clue % 2) == 0:
+            #     #     rospy.loginfo("Turning left for clueboard")
+            #     #     direction = 1
+            #     # else:
+            #     #     rospy.loginfo("Turning right for clueboard")
+            #     #     #Same as above, opposite direction
+            #     #     direction = -1
+            #     # findclue = self.look_for_clue(cv_image)
+            #     findclue = True
+            #     #TODO: make findclue = when full rectangle is seen and read and there is a NEW clue
             #     if findclue:
             #         self.clue = self.clues_seen
             #         if self.clue == 3:
             #             self.zone = 3
+            #     self.line_follow(img_bin)
+            #     img_bin = self.road_reader.road_binarize(cv_image, self.zone)
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
-            if self.zone == 1:
+            elif self.zone == 1:
                 # rospy.loginfo("Stop at zone 1")
                 self.obstacle_passed = self.wait_for_movement(cv_image, 1, 0, 3)
                 if self.obstacle_passed:
@@ -190,7 +199,7 @@ class Driver:
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
 
-        # cv2.imshow("camera feed", cv_image)
+        cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
@@ -278,23 +287,23 @@ class Driver:
         time.sleep(0.05)
         return False
 
-    def wait_for_clue(self, image, direction):
-        #Wait for thing to cross, then zoom through
-        #TODO: insert Alfred's recognize clueboard function here
-        if self.ready_to_read: #TODO: this should depend on clueboard finding function
-            self.ready_to_read = True
-
+    def look_for_clue(self, image, direction):
+        #This is to turn towards the signs when we see them
         if self.ready_to_read:
             rospy.loginfo("Robot has full view of clueboard")
             if self.clue_isRead:
                 #if the clueboard has been read, turn back towards the road
-                self.move.angular.z = direction 
-                #TODO: insert delay or other way to get back to the road
+                self.move.angular.z = - direction 
                 self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
                 self.clue_isRead = False
                 return True
             else:
                 rospy.loginfo("Waiting to read clueboard")
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
                 #if there has been no clue read, must read the clueboard
                 if True: #TODO: insert Alfred's function here to read a clueboard
                     self.clue_isRead = True
@@ -303,6 +312,8 @@ class Driver:
             #The robot stops moving after initial stop
             self.move.linear.x = 0
             self.move.angular.z = direction
+            #TODO: make ready_to_read == is full rectangle showing, should be Alfred's code
+            self.ready_to_read = True
         self.cmd_vel_pub.publish(self.move)
         return False
 
