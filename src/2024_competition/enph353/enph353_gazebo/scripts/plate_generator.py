@@ -35,11 +35,7 @@ def loadCrimesProfileCompetition():
 
     # We will save the clues to plates.csv
     # TODO Rename plates.csv to clues.csv
-<<<<<<< HEAD
-    with open(SCRIPT_PATH + "plates.csv", 'w') as plates_file:
-=======
     with open(SCRIPT_PATH + "clues.csv", 'w') as plates_file:
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
         csvwriter = csv.writer(plates_file)
 
         for (key, value) in zip(key_list, value_list):
@@ -50,8 +46,6 @@ def loadCrimesProfileCompetition():
 
     return clues
 
-<<<<<<< HEAD
-=======
 def loadClues():
     script_path = os.path.dirname(os.path.realpath(__file__)) + "/"
     clues = {}
@@ -65,7 +59,6 @@ def loadClues():
 
     return clues
 
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
 # Find the path to this script
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/"
 TEXTURE_PATH = '../media/materials/textures/'
@@ -75,11 +68,7 @@ PLATE_HEIGHT = 600
 PLATE_WIDTH = banner_canvas.shape[1]
 IMG_DEPTH = 3
 
-<<<<<<< HEAD
-clues = loadCrimesProfileCompetition()
-=======
 clues = loadClues()
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
 
 i = 0
 for key, value in clues.items():

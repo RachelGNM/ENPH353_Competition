@@ -18,11 +18,7 @@ def generateClues():
 
     prompt = f"""You will generate clues that describe a potential funny crime 
                 for your game in random order. 
-<<<<<<< HEAD
-                The clues must have less than 13 characters. 
-=======
                 The clues must have less than 13 characters, no more than 2 words, and not contain numbers. 
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
                 Use themes from planet Earth.
                 Display the clues in the following order:
                     NUMBER OF VICTIMS
@@ -33,11 +29,8 @@ def generateClues():
                     WHY WAS THE CRIME COMMITED
                     WHAT WEAPON WAS THE CRIME COMMITED WITH
                     WHO WAS THE CRIMINAL
-<<<<<<< HEAD
-=======
 
                     Return only the clues, separated by newlines.
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
                 """
 
     completion = client.chat.completions.create(
@@ -59,8 +52,4 @@ def generateClues():
     print(story)
 
 generateClues()
-<<<<<<< HEAD
 exit(0)
-=======
-exit(0)
->>>>>>> Modified plate generation to take clues from clues.csv and added several starting clue and image datasets
