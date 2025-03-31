@@ -80,7 +80,7 @@ class MotionDetector:
             rospy.loginfo(f"Contours: {len(contours)}")
         else:
             rospy.loginfo("No movement")
-        return False
+        return len(contours) > expected_contours
 
     
 
