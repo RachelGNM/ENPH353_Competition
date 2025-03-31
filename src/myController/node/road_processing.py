@@ -10,7 +10,7 @@ from cv_bridge import CvBridge
 
 class RoadProcessing:
     def road_binarize(self, image_feed, zone):
-        if zone <= 4:
+        if zone == 4 or zone < 3:
             threshold = 90
             wall_threshold = 80
             #Convert frame to binary
@@ -24,7 +24,19 @@ class RoadProcessing:
             # Turn the top section white
             img_bin[:2 * height // 3, :] = [255]
             return img_bin
-        # else:
+        elif zone == 3:
+            threshold = 90
+            wall_threshold = 80
+            #Convert frame to binary
+            blur_frame = cv2.GaussianBlur(image_feed, (5, 5), 0)
+            # gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
+            gray_frame = blur_frame[:,:,1]
+            frame_no_wall = np.where((gray_frame < wall_threshold), 255, gray_frame)
+            _, img_bin = cv2.threshold(frame_no_wall, threshold, 255, cv2.THRESH_BINARY)
+            # Get image dimensions
+            height, width = img_bin.shape
+            return img_bin
+
 
 
 
@@ -139,63 +151,34 @@ class RoadProcessing:
             return sign_number + 1, True  # Blue detected
         else:
             return sign_number, False  # No blue detected
+    
+    def detect_left_turn(self, image):
+        height, width = image.shape
 
-    def detect_movement(self, prev_image, image):
-        rospy.loginfo("Detecting movement")
-        height, width, _ = prev_image.shape
+        image = image[7 * height // 16: 5 * height // 8, : width // 4]
 
-        prev_image = prev_image[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
-        image = image[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
+        cv2.imshow("Left turn search", image)
 
-        # threshold_value = 40
+        image = image[: height // 2, : width // 4]
 
-        # prev_gray = cv2.cvtColor(prev_image, cv2.COLOR_BGR2GRAY)
-        # curr_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = cv2.GaussianBlur(image, (5, 5), 0)
+        _, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
 
-        # # Apply GaussianBlur to reduce noise
-        # prev_gray = cv2.GaussianBlur(prev_gray, (21, 21), 0)
-        # curr_gray = cv2.GaussianBlur(curr_gray, (21, 21), 0)
+        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # #Calculate the difference between the images
-        # diff = cv2.absdiff(prev_gray,curr_gray)
+        prev_len = 0
 
-        # _, threshold = cv2.threshold(diff,threshold_value, 255, cv2.THRESH_BINARY)
+        cv2.imshow("Left turn search", image)
+        
+        for contour in contours:
+            if len(contour) > prev_len:
+                prev_len = len(contour)
+                rospy.loginfo(f"Largest contour: {prev_len}")
 
-        # threshold = cv2.dilate(threshold, None, iterations=2)
-
-        # cv2.imshow("movement", threshold)
-
-        # contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # if len(contours) > 0:
-        #     rospy.loginfo("Movement detected!")
-        #     return True
-        # else:
-        #     rospy.loginfo("No movement detected.")
-        #     return False
-
-
-        # Apply background subtraction to the current frame
-        fg_mask = cv2.createBackgroundSubtractorMOG2().apply(image)
-
-        # Optional: Dilate the mask to make contours more prominent
-        fg_mask = cv2.dilate(fg_mask, None, iterations=2)
-
-        # Find contours in the foreground mask
-        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Draw the contours on the image for debugging purposes
-        cv2.drawContours(image, contours, -1, (0, 255, 0), 2)
-
-        # Show the original frame with contours drawn
-        cv2.imshow("Detected Movement", image)
-
-        # If there are any contours, it means there is movement
-        if len(contours) > 0:
-            rospy.loginfo("Movement detected!")
-            return True
-        else:
-            rospy.loginfo("No movement detected.")
-            return False
+            if len(contour) > 100:  # Ignore small noise
+                rospy.loginfo(f"Large contour: {len(contour)}")
+                return True
+                
+        return False
 
 

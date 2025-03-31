@@ -49,8 +49,8 @@ class MotionDetector:
 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-        height_after, _, _ = image.shape
-        height_threshold = height_after // 2
+        # height_after, _, _ = image.shape
+        # height_threshold = height_after // 2
         if zone == 1:
             #rospy.loginfo("Checking for red line")
             # Define HSV range for red color (two ranges needed for red hue wrap-around)
@@ -75,9 +75,23 @@ class MotionDetector:
             cv2.imshow("Red", image)
 
             expected_contours = 1
+        elif zone == 3:
+            expected_contours = 3
+
+            threshold = 200
+            blur_frame = cv2.GaussianBlur(image, (9, 9), 0)
+            gray_frame = blur_frame[:,:,1]
+            _, img_bin = cv2.threshold(gray_frame, threshold, 255, cv2.THRESH_BINARY)
+
+            height, width = img_bin.shape
+
+            img_bin = img_bin[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
+
+            contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            cv2.imshow("truck contours", img_bin)
         if len(contours) > expected_contours:
-            rospy.loginfo("More than expected contours")
-            rospy.loginfo(f"Contours: {len(contours)}")
+            rospy.loginfo(f"More than expected contours: {len(contours)}")
         else:
             rospy.loginfo("No movement")
         return len(contours) > expected_contours

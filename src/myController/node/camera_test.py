@@ -63,11 +63,28 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        true = self.road.detect_movement(self.prev_image, cv_image)
+        self.three_way_intersection(cv_image)
+
+        # true = self.road.detect_movement(self.prev_image, cv_image)
         self.prev_image = cv_image
 
-        rospy.loginfo(f"Movement detected = {true}")
+        # rospy.loginfo(f"Movement detected = {true}")
         cv2.waitKey(1)
+
+
+    def three_way_intersection(self, cv_image):
+        #Convert frame to binary
+        height, width, _ = cv_image.shape
+        cv_image = cv_image[height // 2:,:,:]
+        threshold = 200
+        blur_frame = cv2.GaussianBlur(cv_image, (5, 5), 0)
+        gray_frame = blur_frame[:,:,1]
+        _, img_bin = cv2.threshold(gray_frame, threshold, 255, cv2.THRESH_BINARY)
+        # cv2.imshow("Bin Feed 1", img_bin)
+        # cv2.imshow("No Wall Feed 1", frame_no_wall)
+        # Get image dimensions
+
+        cv2.imshow("Bin", img_bin)
 
         
     def main_road(self, cv_image):

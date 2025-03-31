@@ -25,10 +25,10 @@ class Driver:
         self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 120
+        self.endpoint = 30
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 3
         self.clue = 0
 
         #for clue reading logic
@@ -59,6 +59,9 @@ class Driver:
         self.previous_image = np.zeros((800,800,3), dtype=np.uint8)
         self.prev_waiting = False
         self.obstacle = False
+        self.obstacle_passed = False
+        self.increment = 0
+        self.found_left = False
         #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
 
 
@@ -96,19 +99,21 @@ class Driver:
         #Look for all scenarios which require anything other than generic line following
         self.zone, stopping_line = self.road_reader.stopping_point(cv_image, self.zone)
         truck = (self.zone == 3)
+        # rospy.loginfo(f"Truck: {truck}")
         self.clues_seen, clue_spotted = self.road_reader.detect_sign(cv_image,self.clue)
-        #new_clue = (self.clues_seen != self.clue)
+        new_clue = (self.clues_seen != self.clue)
         stop = stopping_line or (self.zone == 6) or truck #or new_clue
 
         if stop == False:
-            rospy.loginfo("No stop")
+            # rospy.loginfo("No stop")
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
             self.obstacle = False
+            self.increment = 0
             self.line_follow(img_bin)
         else:
-            rospy.loginfo("Stop started")
-            rospy.loginfo(f"Zone: {self.zone}")
+            # rospy.loginfo("Stop started")
+            # rospy.loginfo(f"Zone: {self.zone}")
             #make sure it actually stops
             self.move.linear.x = 0
             self.move.angular.z = 0
@@ -132,15 +137,48 @@ class Driver:
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
-                rospy.loginfo("Stop at zone 1")
-                movement = self.wait_for_movement(cv_image, 1, 0, 3)
-                if movement == True:
+                # rospy.loginfo("Stop at zone 1")
+                self.obstacle_passed = self.wait_for_movement(cv_image, 1, 0, 3)
+                if self.obstacle_passed:
                     rospy.loginfo("Zone 1 Complete!")
                     self.zone = 2
-            elif self.zone == 2:
-                #TODO: Wait for truck then turn left, line follow, and turn left at intersection again
+                    self.obstacle = False
+                    self.prev_waiting = False
+                    self.obstacle_passed = False
+            elif self.zone == 3:
+                #Wait for truck then turn left, line follow, and turn left at intersection again
                 #Must somehow stay left at the end. Also increment zone after getting past the loop
-                self.move.linear.x = 0
+                # rospy.loginfo("Stop at zone 3")
+                if not self.obstacle_passed:
+                    self.obstacle_passed = self.wait_for_movement(cv_image, 1, 1.5, 2)
+                else:
+                    img_bin = self.road_reader.road_binarize(cv_image, 3)
+                    img_bin1 = self.road_reader.road_binarize(cv_image, 1)
+                    height, width = img_bin.shape
+                    # img_bin = img_bin[:,:width // 2]
+                    # cv2.imshow("Left", img_bin)
+                    # Turn the top section white for line following
+                    if self.increment < 50:
+                        self.line_follow(img_bin1)
+                        self.increment += 1
+                    elif self.road_reader.detect_left_turn(img_bin):
+                        if self.found_left:
+                            self.move.linear.x = 1
+                            self.move.angular.z = 1.5
+                            self.cmd_vel_pub.publish(self.move)
+                            time.sleep(2)
+                            self.move.linear.x = 0
+                            self.move.angular.z = 0
+                            self.cmd_vel_pub.publish(self.move)
+                            self.zone = 4
+                        else:
+                            self.found_left = True
+                    else:
+                        # height, width = img_bin1.shape
+                        img_bin = img_bin1[:,width // 2:]
+                        # cv2.imshow("Left", img_bin)
+                        self.line_follow(img_bin1)
+                        self.found_left = False
             elif self.zone == 4: #this is reaching the new biome
                 #Just move forward until stop == false
                 self.move.linear.x = 0.8
@@ -152,7 +190,7 @@ class Driver:
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
 
-        cv2.imshow("camera feed", cv_image)
+        # cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
@@ -208,6 +246,7 @@ class Driver:
             if self.obstacle:
                 #if there is movement found and we're waiting, then run forward
                 if not self.motion_detector.detect_movement(image, self.zone):
+                    time.sleep(1)
                     self.move.linear.x = forward_movement
                     self.move.angular.z = turn
                     self.cmd_vel_pub.publish(self.move)
@@ -220,13 +259,13 @@ class Driver:
                     rospy.loginfo("Movement duration completed, stopping robot.")
                     return True
             else:
-                rospy.loginfo("Waiting to detect movement")
+                # rospy.loginfo("Waiting to detect movement")
                 #if there has been no previous movement found, wait till movement is found
                 if self.motion_detector.detect_movement(image, self.zone):
                     rospy.loginfo("Movement detected")
                     self.obstacle = True
                 else:
-                    rospy.loginfo("No movement, waiting for passerby")
+                    rospy.loginfo("No movement, waiting for obstacle")
                     self.move.linear.x = 0
                     self.move.angular.z = 0
         else:
@@ -252,6 +291,7 @@ class Driver:
                 self.move.angular.z = direction 
                 #TODO: insert delay or other way to get back to the road
                 self.cmd_vel_pub.publish(self.move)
+                self.clue_isRead = False
                 return True
             else:
                 rospy.loginfo("Waiting to read clueboard")
