@@ -104,7 +104,7 @@ class Driver:
             self.move.linear.x = 0
             self.move.angular.z = 0
 
-            This is checking for clueboards first ahead of zone switches
+            #This is checking for clueboards first ahead of zone switches
             if new_clue:
                 rospy.loginfo("Looking for clueboard")
                 direction = 0
