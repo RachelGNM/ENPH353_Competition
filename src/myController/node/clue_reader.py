@@ -15,6 +15,8 @@ Node that looks for clues in the image feed and detects whether or not there is 
 If a board is detected, then the node reads what is on the board and prints what its read in the terminal.
 """
 
+lower_blue = np.array([90, 90, 50])  # Lower bound of blue
+upper_blue = np.array([130, 255, 255])  # Upper bound of blue
 
 def load_image(path):
     return cv2.imread(path)
@@ -32,28 +34,23 @@ def find_largest_contour(binary):
         raise ValueError("No contours found")
     return max(contours, key=cv2.contourArea)
 
+# Order points: top-left, top-right, bottom-right, bottom-left
 def order_points(pts):
-    rect = np.zeros((4, 2), dtype="float32")
-    s = pts.sum(axis=1)
-    diff = np.diff(pts, axis=1)
-
-    rect[0] = pts[np.argmin(s)]       # Top-left
-    rect[2] = pts[np.argmax(s)]       # Bottom-right
-    rect[1] = pts[np.argmin(diff)]    # Top-right
-    rect[3] = pts[np.argmax(diff)]    # Bottom-left
-
-    return rect
+    """Helper function for perspective warp"""
+    pts = pts[np.argsort(pts[:, 1])]  # sort by y
+    top, bottom = pts[:2], pts[2:]
+    top = top[np.argsort(top[:, 0])]
+    bottom = bottom[np.argsort(bottom[:, 0])]
+    return np.array([top[0], top[1], bottom[1], bottom[0]], dtype="float32")
 
 
 def warp_perspective_to_rectangle(image, contour, output_size=(1200, 400)):
-    epsilon = 0.02 * cv2.arcLength(contour, True)
-    approx = cv2.approxPolyDP(contour, epsilon, True)
+    """Correct skew and rotation using a perspective transform."""
+    rect = cv2.minAreaRect(contour)
+    box = cv2.boxPoints(rect)
+    box = box.astype(int)
 
-    if len(approx) != 4:
-        raise ValueError("Contour does not have 4 corners.")
-
-    pts = approx.reshape(4, 2)
-    ordered = order_points(pts)
+    box = order_points(box)
 
     dst = np.array([
         [0, 0],
@@ -62,12 +59,52 @@ def warp_perspective_to_rectangle(image, contour, output_size=(1200, 400)):
         [0, output_size[1] - 1]
     ], dtype="float32")
 
-    M = cv2.getPerspectiveTransform(ordered, dst)
+    M = cv2.getPerspectiveTransform(box, dst)
     warped = cv2.warpPerspective(image, M, output_size)
     return warped
 
+def get_board(image):
+    """
+    Finds and returns the largest clue board in the frame
+    """
 
-def extract_characters_by_contour(warped_image, y_crop_start=0, height=200, target_size=(108, 108)):
+    if image is None:
+        print(f"Error: no image")
+        return False, image
+
+    # Convert to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Create blue mask
+    blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    # Eliminate top 40% of the image from the mask
+    height = blue_mask.shape[0]
+    cutoff = int(0.4 * height)
+    blue_mask[0:cutoff, :] = 0  # Set top 40% to black (mask off)
+
+    # Apply the modified mask
+    result = cv2.bitwise_and(image, image, mask=blue_mask)
+
+    # Find contours in the blue mask
+    contours, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        # Find the largest contour
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+
+        # Crop ROI and upscale to 600x400
+        roi = image[y:y+h, x:x+w]
+        roi_upscaled = cv2.resize(roi, (600, 400), interpolation=cv2.INTER_CUBIC)
+
+        rospy.loginfo("Clue board detected")
+        return roi_upscaled
+    else:
+        rospy.logwarn("No clue board detected)")
+
+
+def extract_characters_by_contour(warped_image, y_crop_start=200, height=200, target_size=(108, 108)):
     """
     Crops HSV hue region and finds character contours, returning resized character images.
     Focuses on hues in the range 90–130.
@@ -122,70 +159,30 @@ class clueReader:
         rospy.spin()
 
     def image_callback(self, msg):
+
+        #Enforce cooldown to avoid overload
         if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
             return
         self.last_detection_time = rospy.Time.now()
 
+        #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+        
+        board = get_board(frame)
 
-        binary = binarize_image(frame)
+        #Binarize board, then align board to account for perspective differences then extract characters
+        binary = binarize_image(board)
+        contour = find_largest_contour(binary)
+        aligned = warp_perspective_to_rectangle(board, contour)
+        characters = extract_characters_by_contour(aligned)
 
-        try:
-            contour = find_largest_contour(binary)
-        except ValueError:
-            rospy.loginfo("No clue board detected (no contours).")
-            return
-
-        try:
-            # Visualize original frame with detected contour
-            debug_img = frame.copy()
-            cv2.drawContours(debug_img, [contour], -1, (0, 255, 0), 2)
-
-            # Get perspective warp corners
-            rect = cv2.minAreaRect(contour)
-            box = cv2.boxPoints(rect)
-            box = box.astype(int)
-            ordered_box = order_points(box)
-
-            # Draw points and labels
-            for i, pt in enumerate(ordered_box):
-                pt = tuple(pt.astype(int))
-                cv2.circle(debug_img, pt, 8, (0, 0, 255), -1)
-                cv2.putText(debug_img, str(i), pt, cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-
-            cv2.imshow("Detected Contour + Points", debug_img)
-
-            # Perform the warp
-            warped = warp_perspective_to_rectangle(frame, contour)
-
-            # Debug view
-            cv2.imshow("Warped Board", warped)
-            cv2.imshow("Binary Char Mask", binary)
-            cv2.waitKey(1)
-
-            # Show warped result
-            cv2.imshow("Warped Board", warped)
-            cv2.imshow("Binary Char Mask", binary)
-            cv2.waitKey(1)
-
-            # Extract characters
-            char_images = extract_characters_by_contour(warped)
-
-        except Exception as e:
-            rospy.logwarn(f"Clue board detected but failed to extract characters: {e}")
-            return
-
-        if not char_images:
-            rospy.loginfo("Clue board detected, but no characters found.")
-            return
-
-        rospy.loginfo("Clue board detected.")
+        #Feed each recognised character into CNN
         clue = ""
-        for idx, char_img in enumerate(char_images):
+        for idx, char_img in enumerate(characters):
             char_img = char_img.astype(np.float32) / 255.0
             char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
             char_img = np.expand_dims(char_img, axis=0)
@@ -194,6 +191,7 @@ class clueReader:
             predicted_label = chr(np.argmax(prediction) + ord('A'))
             clue += predicted_label
 
+        #Publish if needed
         rospy.loginfo(f"Detected clue: {clue}")
         msg = f"TeamName,password,2,{clue}"  # Update with real values
         self.score_pub.publish(String(data=msg))
