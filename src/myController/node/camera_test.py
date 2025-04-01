@@ -63,7 +63,9 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        self.test_find_blue(cv_image, True)
+        # self.test_find_blue(cv_image, True)
+
+        self.grass_road(cv_image)
 
         # true = self.road.detect_movement(self.prev_image, cv_image)
         self.prev_image = cv_image
@@ -105,18 +107,31 @@ class CameraTesting:
 
     def grass_road(self, cv_image):
         #Convert frame to binary
+        height, _, _ = cv_image.shape
+        cv_image = cv_image[height // 2:,:,:]
         blur_frame = cv2.GaussianBlur(cv_image, (5, 5), 0)
         #gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
-        gray_frame = blur_frame[:,:,2]
-        frame_no_wall = np.where((gray_frame < self.wall_threshold), 255, gray_frame)
-        _, img_bin = cv2.threshold(frame_no_wall, self.threshold, 255, cv2.THRESH_BINARY)
-        height, width = img_bin.shape
-        # Turn the top half white
-        img_bin[:2 * height // 3, :] = [255]
+
+        hsv = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2HSV)
+
+        # Extract the Value channel (brightness)
+        _, _, v = cv2.split(hsv)
+
+        # Define a threshold to extract bright regions (white lines)
+        _, mask = cv2.threshold(v, 180, 190, cv2.THRESH_BINARY)  # Adjust 200 if needed
+
+        # Remove small noise using morphological operations
+        kernel = np.ones((3,3), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+        # Invert mask so white background with black lines
+        final_img = cv2.bitwise_not(mask)
+
+        # Debugging: Show the results
+        cv2.imshow("HSV Mask", mask)
+        cv2.imshow("Final Image", final_img)
         
-        # cv2.imshow("Bin Feed", img_bin)
-        # cv2.imshow("Gray Feed", gray_frame)
-        # image = cv_image[height // 2:, :, :]
 
     def test_find_blue (self, cv_image, left):
         height, width, _ = cv_image.shape
