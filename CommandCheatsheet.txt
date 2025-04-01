@@ -1,5 +1,3 @@
-Essentially replace ros_ws with ENPH353_Competition
-
 Source:
 source ~/ros_ws/devel/setup.bash
 

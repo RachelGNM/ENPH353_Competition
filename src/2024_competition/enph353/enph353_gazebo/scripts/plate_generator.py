@@ -35,7 +35,7 @@ def loadCrimesProfileCompetition():
 
     # We will save the clues to plates.csv
     # TODO Rename plates.csv to clues.csv
-    with open(SCRIPT_PATH + "plates.csv", 'w') as plates_file:
+    with open(SCRIPT_PATH + "clues.csv", 'w') as plates_file:
         csvwriter = csv.writer(plates_file)
 
         for (key, value) in zip(key_list, value_list):
@@ -43,6 +43,19 @@ def loadCrimesProfileCompetition():
 
             # save it to plates
             csvwriter.writerow([key, value.upper()])
+
+    return clues
+
+def loadClues():
+    script_path = os.path.dirname(os.path.realpath(__file__)) + "/"
+    clues = {}
+
+    # Read from clues.csv
+    with open(script_path + "clues.csv", 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            key, value = row
+            clues[key] = value
 
     return clues
 
@@ -55,7 +68,7 @@ PLATE_HEIGHT = 600
 PLATE_WIDTH = banner_canvas.shape[1]
 IMG_DEPTH = 3
 
-clues = loadCrimesProfileCompetition()
+clues = loadClues()
 
 i = 0
 for key, value in clues.items():
