@@ -18,7 +18,7 @@ class LineFollowing:
         self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 10
+        self.endpoint = 30
         
         # Publishers
         self.timer_pub = rospy.Publisher('/score_tracker', String, queue_size=1)
@@ -30,7 +30,7 @@ class LineFollowing:
 
         self.threshold = 90
         self.wall_threshold = 80
-        self.Kp = 0.5
+        self.Kp = 0.6
         self.Kd = 0.2
         self.move = Twist()
         self.last_error = 0
@@ -125,7 +125,6 @@ class LineFollowing:
             self.move.angular.z = 0
             self.cmd_vel_pub.publish(self.move)
 
-        
         cv2.imshow("Bin Feed", img_bin)
         cv2.imshow("Gray Feed", gray_frame)
         cv2.waitKey(1)
