@@ -28,16 +28,17 @@ class Driver:
         self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 30
+        self.endpoint = 60
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 5
         self.clue = 0
 
         #for clue reading logic
         self.clues_seen = 0
         self.ready_to_read = False
         self.clue_isRead = False
+        self.time_clue = None
         # self.found_clueboard = None
         
         # Publishers
@@ -56,7 +57,7 @@ class Driver:
         self.last_error = 0
 
         #Pedestrian movement
-        self.movement_start_time = None  # Time when the movement started
+        # self.movement_start_time = None  # Time when the movement started
 
         #These are for finding movement
         self.previous_image = np.zeros((800,800,3), dtype=np.uint8)
@@ -66,6 +67,10 @@ class Driver:
         self.increment = 0
         self.found_left = False
         #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
+
+        #To average out movement so that there is momentum when in the grassland
+        self.prev_len = 0
+        self.prev_ang = 0
 
 
         rospy.sleep(2)  # Ensure publishers are ready
@@ -117,8 +122,8 @@ class Driver:
                 #Find the rectangle
                 self.ready_to_read, clueboard1 = self.sidecam.process_image(left)
                 opposite_ready_to_read, clueboard2 = self.sidecam.process_image(not left)
-                cv2.imshow("right", clueboard1)
-                cv2.imshow("left", clueboard2)
+                # cv2.imshow("expected", clueboard1)
+                # cv2.imshow("unexpected", clueboard2)
                 if self.ready_to_read:
                     #TODO: Implement CNN here to read the board
                     #@Alfred input CNN here as a function of clueboard1
@@ -131,34 +136,17 @@ class Driver:
             self.prev_waiting = False
             self.obstacle = False
             self.increment = 0
-            self.line_follow(img_bin)
+            # self.line_follow(img_bin)
+            if self.zone < 5:
+                self.line_follow(img_bin)
+            else:
+                self.line_follow_grass(img_bin)
         else:
             # rospy.loginfo("Stop started")
             # rospy.loginfo(f"Zone: {self.zone}")
             # make sure it actually stops
             self.move.linear.x = 0
             self.move.angular.z = 0
-
-            # # This is checking for clueboards first ahead of zone switches
-            # if new_clue:
-            #     rospy.loginfo("Looking for clueboard")
-            #     # direction = 0
-            #     # if (self.clue % 2) == 0:
-            #     #     rospy.loginfo("Turning left for clueboard")
-            #     #     direction = 1
-            #     # else:
-            #     #     rospy.loginfo("Turning right for clueboard")
-            #     #     #Same as above, opposite direction
-            #     #     direction = -1
-            #     # findclue = self.look_for_clue(cv_image)
-            #     findclue = True
-            #     #TODO: make findclue = when full rectangle is seen and read and there is a NEW clue
-            #     if findclue:
-            #         self.clue = self.clues_seen
-            #         if self.clue == 3:
-            #             self.zone = 3
-            #     self.line_follow(img_bin)
-            #     img_bin = self.road_reader.road_binarize(cv_image, self.zone)
 
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
@@ -207,6 +195,15 @@ class Driver:
             elif self.zone == 4: #this is reaching the new biome
                 #Just move forward until stop == false
                 self.move.linear.x = 0.8
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.zone == 5
+            elif self.zone == 5:
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.zone = 6
             elif self.zone == 6:
                 #TODO: Wait for Yoda to pass then hard-code path through grassland
                 self.move.linear.x = 0
@@ -215,7 +212,7 @@ class Driver:
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
 
-        cv2.imshow("camera feed", cv_image)
+        # cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
@@ -258,6 +255,52 @@ class Driver:
                     self.move.linear.x = -0.2
             else:
                 self.move.linear.x = -0.2
+        else:
+            #Stop the robot
+            self.move.linear.x = 0
+            self.move.angular.z = 0
+            self.cmd_vel_pub.publish(self.move)
+
+    def line_follow_grass(self, img_bin):
+        # Find contours
+        contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Process only if at least one contour is found
+        height, width = img_bin.shape
+        linear = 0
+        angular = 0
+
+        if self.timer_ended == False:
+            if contours:
+                # Find the largest contour (assuming it's the main object)
+                c = max(contours, key=cv2.contourArea)
+                # Compute moments
+                M = cv2.moments(c)
+            # Compute centroid coordinates
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+                    #Centroid: ({cx}, {cy})
+                    error = cx - width / 2
+
+                    turn = self.Kp * error + self.Kd * (error - self.last_error) / 2
+                    self.last_error = error
+
+                    angular = turn / 4
+                    if abs(turn) < 0.5:
+                        linear = 0.5
+                    elif abs(turn) < 0.7:
+                        linear = 0.25
+                    else:
+                        angular = turn / 4
+                        linear = 0.04
+
+                else:
+                    linear = -0.2
+            else:
+                linear = 0.2
+            self.move.linear.x = (linear + 0.5 * self.prev_len) / 1.5
+            self.move.angular.z = (angular + 0.5 * self.prev_ang) / 1.5
+            self.cmd_vel_pub.publish(self.move)
         else:
             #Stop the robot
             self.move.linear.x = 0
