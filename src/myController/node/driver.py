@@ -12,6 +12,7 @@ import time
 from road_processing import RoadProcessing
 from motion_detector import MotionDetector
 from side_camera import SideCam
+# from board_in_frame import boardDetector
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -37,7 +38,7 @@ class Driver:
         self.clues_seen = 0
         self.ready_to_read = False
         self.clue_isRead = False
-        #self.find_clueboard = False
+        # self.found_clueboard = None
         
         # Publishers
         self.timer_pub = rospy.Publisher('/score_tracker', String, queue_size=1)
@@ -110,10 +111,22 @@ class Driver:
             # rospy.loginfo("No stop")
             if new_clue:
                 #TODO: read the clue and save the information from it
-                right_image, left_image = self.sidecam.get_image()
-                cv2.imshow("right", right_image)
-                cv2.imshow("left", left_image)
-
+                left = False
+                if (self.clue % 2) == 0:
+                    left = True
+                #Find the rectangle
+                self.ready_to_read, clueboard1 = self.sidecam.process_image(left)
+                opposite_ready_to_read, clueboard2 = self.sidecam.process_image(not left)
+                cv2.imshow("right", clueboard1)
+                cv2.imshow("left", clueboard2)
+                if self.ready_to_read:
+                    #TODO: Implement CNN here to read the board
+                    #@Alfred input CNN here as a function of clueboard1
+                    #TODO: if new clue is found, increment self.clue
+                    rospy.loginfo("Correct camera increment")
+                elif opposite_ready_to_read:
+                    #TODO: do the same with clueboard2
+                    rospy.loginfo("Incorrect camera increment")
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
             self.obstacle = False
