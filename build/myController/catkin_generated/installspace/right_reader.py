@@ -147,15 +147,15 @@ class clueReader:
         rospy.init_node('clue_reader', anonymous=True)
 
         self.clue_location_lookup = {
-            "VICTIM": 2,
-            "TIME": 4,
-            "MOTIVE": 6,
-            "BANDIT": 8
+            "V": 2,
+            "T": 4,
+            "M": 6,
+            "B": 8
         }
 
 
         self.last_detection_time = rospy.Time.now()
-        self.cooldown_duration = rospy.Duration(0.25)  # 0.25 second between detections
+        self.cooldown_duration = rospy.Duration(0.2)  # 0.25 second between detections
         
         # Load the model
         model_path = "/home/fizzer/ros_ws/src/myController/models/clue__recog_cnn.h5"
@@ -194,9 +194,9 @@ class clueReader:
                 writer.writerow([ctype, cval, count])
 
         # Publish clue if seen 5 times
-        if count == 5:
+        if count == 2:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 5 detections.")
-            location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
+            location = self.clue_location_lookup.get(clue_type[0], 0)  # default to 0 if unknown
             rospy.loginfo(f"TeamName,password,{location},{clue_value}")
             msg = f"TeamName,password,{location},{clue_value}"
 
@@ -216,6 +216,9 @@ class clueReader:
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+
+        cv2.imshow("right",frame)
+        cv2.waitKey(1)
         
         board = get_board(frame)
 

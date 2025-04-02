@@ -22,6 +22,12 @@ from side_camera import SideCam
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
 
+"""
+@file driver.py
+
+@brief main code which drives the robot and makes its decisions
+"""
+
 class Driver:
     def __init__(self):
         rospy.init_node('driver', anonymous=True)
@@ -86,6 +92,9 @@ class Driver:
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
     def start_timer(self):
+        """
+        @brief start the timer
+        """
         msg = f"{TEAM_NAME},{PASSWORD},0,NA"
         rospy.loginfo(f"Starting timer: {msg}")
         self.timer_pub.publish(msg)
@@ -94,6 +103,9 @@ class Driver:
 
 
     def stop_timer(self):
+        """
+        @brief stop the timer and stop movement
+        """
         if self.timer_started == True:
             msg = f"{TEAM_NAME},{PASSWORD},-1,NA"
             rospy.loginfo(f"Stopping timer: {msg}")
@@ -106,6 +118,13 @@ class Driver:
         self.cmd_vel_pub.publish(self.move)
 
     def image_callback(self, msg):
+        """
+        @brief move the robot depending on zone
+
+        @details looks for a stopping point, then either line follows or does specific actions depending which zone
+
+        @note make sure self.zone is set to 0 to start (or other if the robot starts in a different spot)
+        """
         try:
             # Convert ROS image to OpenCV format
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -124,7 +143,12 @@ class Driver:
         # if self.zone == 2:
         #     stopping_line = self.road_reader.find_intersection(cv_image)
         truck = (self.zone == 3)
-        stop = stopping_line or (self.zone == 6) or truck
+        if self.zone == 5 and clue_spotted:
+            left = False
+            if self.clue % 2 == 0:
+                left = True
+            self.ready_to_read, _ = self.sidecam.process_image(left)
+        stop = stopping_line or (self.zone == 7) or truck or self.ready_to_read or self.prev_waiting
 
         if stop == False:
             # if clue_spotted:
@@ -163,8 +187,11 @@ class Driver:
                     self.obstacle_passed = False
                     # self.time_zone = rospy.Time.now().to_sec()
                     # rospy.loginfo(f"Time zone set to: {self.time_zone}")
-            elif self.zone == 2 and self.clue == 3:
+            elif self.zone == 2:
                 rospy.loginfo("Moving onto zone 3!")
+                self.move.linear.x = 1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
                 self.zone = 3
             elif self.zone == 3:
                 #Wait for truck then turn left, line follow, and turn left at intersection again
@@ -202,16 +229,30 @@ class Driver:
                         self.found_left = False
             elif self.zone == 4: #this is reaching the new biome
                 #Just move forward until stop == false
-                self.move.linear.x = 0.8
+                self.zone = 5
+                rospy.loginfo("Welcome to the grasslands, be wary of losing your feet :)")
+                self.move.linear.x = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.move.linear.x = 1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.5)
+                self.move.linear.x = 1
+                self.move.angular.z = -2
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(1)
-                self.zone == 5
-            elif self.zone == 5:
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.obstacle = True
+            elif self.zone == 5 and not self.obstacle:
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.zone = 6
+                self.ready_to_read = False
             elif self.zone == 6:
                 #TODO: Wait for Yoda to pass then hard-code path through grassland
                 self.move.linear.x = 0
@@ -220,7 +261,7 @@ class Driver:
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
 
-        # cv2.imshow("camera feed", cv_image)
+        cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
@@ -228,6 +269,11 @@ class Driver:
         #param: input image, outputs find_clueboard = true
 
     def pause(self):
+        """
+        @brief pause stop then go for a time dependent on zone
+
+        @note this is not currently being used
+        """
         delay_stop = 1
         go = False
         if self.clue == 0:
@@ -246,6 +292,13 @@ class Driver:
             time.sleep(delay_go)
 
     def line_follow(self, img_bin):
+        """
+        @brief follow a line by keeping it in the centre of the camera
+
+        @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
+
+        @param img_bin binarized road image
+        """
         # Find contours
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Process only if at least one contour is found
@@ -287,6 +340,15 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
 
     def line_follow_grass(self, img_bin):
+        """
+        @brief follow a line by keeping it in the centre of the camera
+
+        @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
+
+        @param img_bin binarized road image
+
+        @note this is much slower movement than line_follow due to poorer image quality
+        """
         # Find contours
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Process only if at least one contour is found
@@ -328,6 +390,18 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
 
     def wait_for_movement(self, image, forward_movement, turn, delay):
+        """
+        @brief wait for a moving obstacle to pass by
+
+        @details waits to see if it was already waiting, then waits until movement is True, then waits for movement is False, then completes a movement depending on zone
+
+        @param image raw camera feed
+        @param forward_movement forward speed
+        @param turn angular speed
+        @param delay time length of movement
+
+        @return whether the moving obstacle has passed by and the robot is moving into the next zone
+        """
         #Wait for thing to cross, then zoom through
         if self.prev_waiting:
             rospy.loginfo("Previous waiting was activated")
@@ -345,6 +419,7 @@ class Driver:
                     self.move.angular.z = 0
                     self.cmd_vel_pub.publish(self.move)
                     rospy.loginfo("Movement duration completed, stopping robot.")
+                    self.prev_waiting = False
                     return True
             else:
                 # rospy.loginfo("Waiting to detect movement")
@@ -361,12 +436,26 @@ class Driver:
             #The robot stops moving after initial stop
             self.move.linear.x = 0
             self.move.angular.z = 0
+            self.cmd_vel_pub.publish(self.move)
+            time.sleep(0.5)
             self.prev_waiting = True
         self.cmd_vel_pub.publish(self.move)
         time.sleep(0.05)
         return False
 
     def look_for_clue(self, image, direction):
+        """
+        @brief look for a clueboard, turn to read it, then move on
+
+        @details looks for a clueboard then implements a CNN to read it and show that it has been read
+
+        @param image raw camera image
+        @param direction direction to turn
+
+        @return whether the clue has been read or not
+
+        @note this is an old function which is not in use
+        """
         #This is to turn towards the signs when we see them
         if self.ready_to_read:
             rospy.loginfo("Robot has full view of clueboard")
@@ -397,6 +486,11 @@ class Driver:
         return False
 
     def run(self):
+        """
+        @brief start the timer and run the driver code
+
+        @details if time in sim > maximum time (240s), stop the robot and timer
+        """
         rospy.loginfo("Starting Comp :)")
         self.start_timer()  # Start timer
 

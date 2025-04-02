@@ -50,8 +50,8 @@ def loadClues():
     script_path = os.path.dirname(os.path.realpath(__file__)) + "/"
     clues = {}
 
-    # Read from clues.csv
-    with open(script_path + "clues.csv", 'r') as csvfile:
+    # Read from plates.csv
+    with open(script_path + "plates.csv", 'r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             key, value = row
