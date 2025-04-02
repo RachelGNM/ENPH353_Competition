@@ -244,10 +244,10 @@ class RoadProcessing:
             _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
 
             # Find all white pixels (nonzero pixels)
-            white_pixels = np.column_stack(np.where(image == 255))
+            white_pixels = np.column_stack(np.where(img_bin == 255))
 
             # Check if any white pixel reaches the last column
-            if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == image.shape[1] - 1:
+            if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == img_bin.shape[1] - 1:
                 return zone, True
             else:
                 return zone, False

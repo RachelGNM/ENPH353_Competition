@@ -43,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 4
+        self.zone = 0
         self.clue = 0
         self.time_zone = 0
 
@@ -82,10 +82,6 @@ class Driver:
         self.increment = 0
         self.found_left = False
         #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
-
-        #To average out movement so that there is momentum when in the grassland
-        # self.prev_len = 0
-        # self.prev_ang = 0
 
         rospy.sleep(2)  # Ensure publishers are ready
 
@@ -135,19 +131,8 @@ class Driver:
         self.zone, stopping_line = self.road_reader.stopping_point(cv_image, self.zone)
         # rospy.loginfo(f"Truck: {truck}")
         self.clues_seen, clue_spotted = self.road_reader.detect_sign(cv_image,self.clue)
-        # new_clue = (self.clues_seen != self.clue)
-        # current_time = rospy.Time.now().to_sec()
-        # rospy.loginfo(f"Current time set to: {current_time}")
-        # current_delay = current_time - self.time_zone
-        # rospy.loginfo(f"Current delay set to: {current_delay}")
-        # if self.zone == 2:
-        #     stopping_line = self.road_reader.find_intersection(cv_image)
+
         truck = (self.zone == 3)
-        # if self.zone == 5 and clue_spotted:
-        #     left = False
-        #     if self.clue % 2 == 0:
-        #         left = True
-        #     self.ready_to_read, _ = self.sidecam.process_image(left)
         if self.clue == 0:
             self.move.linear.x = 0
             self.move.angular.z = 0
@@ -262,9 +247,6 @@ class Driver:
         cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
-        #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
-        #author: Alfred
-        #param: input image, outputs find_clueboard = true
 
     def pause(self):
         """
@@ -296,6 +278,7 @@ class Driver:
         @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
 
         @param img_bin binarized road image
+        @param speed_factor factor to increase/decrease speed based on zone
         """
         # Find contours
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
