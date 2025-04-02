@@ -1,7 +1,7 @@
 <launch>
     <!-- Launch clue readers first -->
-    <!-- <node pkg="myController" type="left_reader.py" name="left_reader" output="screen"/> -->
-    <!-- <node pkg="myController" type="right_reader.py" name="right_reader" output="screen"/> -->
+    <node pkg="myController" type="left_reader.py" name="left_reader" output="screen"/> 
+    <node pkg="myController" type="right_reader.py" name="right_reader" output="screen"/>
 
     <!-- Launch driver with 5-second delay -->
     <node pkg="myController" type="driver.py" name="driver" output="screen"/>
