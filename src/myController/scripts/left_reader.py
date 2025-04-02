@@ -147,10 +147,10 @@ class clueReader:
         rospy.init_node('clue_reader', anonymous=True)
 
         self.clue_location_lookup = {
-            "SIZE": 1,
-            "CRIME": 3,
-            "PLACE": 5,
-            "WEAPON": 7,
+            "S": 1,
+            "C": 3,
+            "P": 5,
+            "W": 7,
         }
 
 
@@ -196,7 +196,7 @@ class clueReader:
         # Publish clue if seen 5 times
         if count == 2:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 5 detections.")
-            location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
+            location = self.clue_location_lookup.get(clue_type[0], 0)  # default to 0 if unknown
             rospy.loginfo(f"TeamName,password,{location},{clue_value}")
             msg = f"TeamName,password,{location},{clue_value}"
 
