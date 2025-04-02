@@ -30,10 +30,10 @@ class Driver:
         # self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 60
+        self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 4
         self.clue = 0
         self.time_zone = 0
 
@@ -120,7 +120,12 @@ class Driver:
         # if self.zone == 2:
         #     stopping_line = self.road_reader.find_intersection(cv_image)
         truck = (self.zone == 3)
-        stop = stopping_line or (self.zone == 6) or truck
+        if self.zone == 5 and clue_spotted:
+            left = False
+            if self.clue % 2 == 0:
+                left = True
+            self.ready_to_read, _ = self.sidecam.process_image(left)
+        stop = stopping_line or (self.zone == 7) or truck or self.ready_to_read or self.prev_waiting
 
         if stop == False:
             # if clue_spotted:
@@ -159,8 +164,11 @@ class Driver:
                     self.obstacle_passed = False
                     # self.time_zone = rospy.Time.now().to_sec()
                     # rospy.loginfo(f"Time zone set to: {self.time_zone}")
-            elif self.zone == 2 and self.clue == 3:
+            elif self.zone == 2:
                 rospy.loginfo("Moving onto zone 3!")
+                self.move.linear.x = 1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
                 self.zone = 3
             elif self.zone == 3:
                 #Wait for truck then turn left, line follow, and turn left at intersection again
@@ -198,16 +206,30 @@ class Driver:
                         self.found_left = False
             elif self.zone == 4: #this is reaching the new biome
                 #Just move forward until stop == false
-                self.move.linear.x = 0.8
+                self.zone = 5
+                rospy.loginfo("Welcome to the grasslands, be wary of losing your feet :)")
+                self.move.linear.x = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.move.linear.x = 1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.5)
+                self.move.linear.x = 1
+                self.move.angular.z = -2
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(1)
-                self.zone == 5
-            elif self.zone == 5:
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.obstacle = True
+            elif self.zone == 5 and not self.obstacle:
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.zone = 6
+                self.ready_to_read = False
             elif self.zone == 6:
                 #TODO: Wait for Yoda to pass then hard-code path through grassland
                 self.move.linear.x = 0
@@ -216,7 +238,7 @@ class Driver:
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)
 
-        # cv2.imshow("camera feed", cv_image)
+        cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
         #TODO: use function here to check for a clueboard, if it exists, read it and increment self.clue (assuming we're going in order)
@@ -341,6 +363,7 @@ class Driver:
                     self.move.angular.z = 0
                     self.cmd_vel_pub.publish(self.move)
                     rospy.loginfo("Movement duration completed, stopping robot.")
+                    self.prev_waiting = False
                     return True
             else:
                 # rospy.loginfo("Waiting to detect movement")
@@ -357,6 +380,8 @@ class Driver:
             #The robot stops moving after initial stop
             self.move.linear.x = 0
             self.move.angular.z = 0
+            self.cmd_vel_pub.publish(self.move)
+            time.sleep(0.5)
             self.prev_waiting = True
         self.cmd_vel_pub.publish(self.move)
         time.sleep(0.05)
