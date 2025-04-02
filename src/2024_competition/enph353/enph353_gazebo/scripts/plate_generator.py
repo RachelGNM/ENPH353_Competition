@@ -35,7 +35,7 @@ def loadCrimesProfileCompetition():
 
     # We will save the clues to plates.csv
     # TODO Rename plates.csv to clues.csv
-    with open(SCRIPT_PATH + "clues.csv", 'w') as plates_file:
+    with open(SCRIPT_PATH + "plates.csv", 'w') as plates_file:
         csvwriter = csv.writer(plates_file)
 
         for (key, value) in zip(key_list, value_list):
