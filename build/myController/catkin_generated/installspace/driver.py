@@ -40,7 +40,7 @@ class Driver:
         # self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 60
+        self.endpoint = 240
 
         #this is to map where the robot is on the map
         self.zone = 0
