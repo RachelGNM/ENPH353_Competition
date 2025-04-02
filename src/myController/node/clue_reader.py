@@ -280,10 +280,12 @@ class clueReader:
         #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            return frame
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
         
+<<<<<<< HEAD
         board = get_board(frame)
 
         #Binarize board, then align board to account for perspective differences then extract characters
@@ -320,6 +322,8 @@ class clueReader:
 
         self.update_csv1(clueType, clue)
 
+=======
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
 
     def right_image_callback(self, msg):
 
@@ -331,9 +335,11 @@ class clueReader:
         #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+<<<<<<< HEAD
         
         board = get_board(frame)
 
@@ -359,6 +365,8 @@ class clueReader:
         rospy.loginfo(f"Detected right type: {clueType}")
 
         self.update_csv2(clueType, clue)
+=======
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
 
     def left_image_callback(self, msg):
 
@@ -370,9 +378,18 @@ class clueReader:
         #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+
+    def read_board(self,camera):
+        if camera == "left":
+            frame = left_image_callback()
+        elif camera == "right":
+            frame = right_image_callback()
+        else:
+            frame = image_callback()
         
         board = get_board(frame)
 
@@ -381,8 +398,9 @@ class clueReader:
         contour = find_largest_contour(binary)
         aligned = warp_perspective_to_rectangle(board, contour)
         characters = extract_characters_by_contour(aligned)
+        clueChars = extract_characters_by_contour(aligned, y_crop_start=0)
 
-        #Feed each recognised character into CNN
+        #Feed each recognised character into CNN to get the clue and type
         clue = ""
         for idx, char_img in enumerate(characters):
             char_img = char_img.astype(np.float32) / 255.0
@@ -393,9 +411,29 @@ class clueReader:
             predicted_label = chr(np.argmax(prediction) + ord('A'))
             clue += predicted_label
 
+        clueType=""
+        for idx, char_img in enumerate(clueChars):
+            char_img = char_img.astype(np.float32) / 255.0
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            char_img = np.expand_dims(char_img, axis=0)
+
+            prediction = self.model.predict(char_img)[0]
+            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            clueType += predicted_label
+
         #Publish if needed
+<<<<<<< HEAD
         rospy.loginfo(f"Detected right clue: {clue}")
         rospy.loginfo(f"Detected right type: {clueType}")
+=======
+        rospy.loginfo(f"Detected clue: {clue}")
+        rospy.loginfo(f"Detected type: {clueType}")
+
+        self.update_csv(clueType, clue)
+
+        msg = f"TeamName,password,2,{clue}"  # Update with real values
+        #self.score_pub.publish(String(data=msg))
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
 
         self.update_csv3(clueType, clue)
     
