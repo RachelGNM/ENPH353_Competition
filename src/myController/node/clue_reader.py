@@ -144,7 +144,7 @@ def extract_characters_by_contour(warped_image, y_crop_start=200, height=200, ta
 
 class clueReader:
     def __init__(self):
-        rospy.init_node('clue_reader', anonymous=True)
+        # rospy.init_node('clue_reader', anonymous=True)
 
         self.clue_location_lookup = {
             "SIZE": 1,
@@ -167,37 +167,104 @@ class clueReader:
 
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/B1/rrbot/camera1/image_raw", Image, self.image_callback)
+        self.right_image_sub = rospy.Subscriber("/B1/rrbot/camera_right/image_right_raw", Image, self.right_image_callback)
+        self.left_image_sub = rospy.Subscriber("/B1/rrbot/camera_left/image_left_raw", Image, self.left_image_callback)
         self.score_pub = rospy.Publisher("/score_tracker", String, queue_size=10)
 
         # Set up SQLite database
-        db_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database.csv")
-        self.init_csv()
+        db1_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database1.csv")
+        self.init_csv1()
+        db2_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database2.csv")
+        self.init_csv2()
+        db3_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database3.csv")
+        self.init_csv3()
 
 
         rospy.loginfo("Clue Board Detector with CNN ready.")
-        rospy.spin()
 
-    def init_csv(self):
-        self.csv_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database.csv")
+    def init_csv1(self):
+        self.csv1_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database1.csv")
         self.clue_counts = defaultdict(int)
 
         # Start with a fresh file each run
-        with open(self.csv_path, mode='w', newline='') as file:
+        with open(self.csv1_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])  # Header
+    
+    def init_csv2(self):
+        self.csv2_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database2.csv")
+        self.clue_counts = defaultdict(int)
+
+        # Start with a fresh file each run
+        with open(self.csv2_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(["Clue Type", "Clue Value", "Count"])  # Header
 
-    def update_csv(self, clue_type, clue_value):
+    def init_csv3(self):
+        self.csv3_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database3.csv")
+        self.clue_counts = defaultdict(int)
+
+        # Start with a fresh file each run
+        with open(self.csv3_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])  # Header
+
+    def update_csv1(self, clue_type, clue_value):
         key = (clue_type, clue_value)
         self.clue_counts[key] += 1
 
         # Write the entire file every update
-        with open(self.csv_path, mode='w', newline='') as file:
+        with open(self.csv1_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(["Clue Type", "Clue Value", "Count"])
             for (ctype, cval), count in self.clue_counts.items():
                 writer.writerow([ctype, cval, count])
 
+        # Publish clue if seen 1 times
+        if count == 1:
+            rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
+            location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
+            rospy.loginfo(f"TeamName,password,{location},{clue_value}")
+            msg = f"TeamName,password,{location},{clue_value}"
+
+            self.score_pub.publish(String(data=msg))
+
+    def update_csv2(self, clue_type, clue_value):
+        key = (clue_type, clue_value)
+        self.clue_counts[key] += 1
+
+        # Write the entire file every update
+        with open(self.csv2_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])
+            for (ctype, cval), count in self.clue_counts.items():
+                writer.writerow([ctype, cval, count])
+
+        # Publish clue if seen 1 times
+        if count == 1:
+            rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
+            location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
+            rospy.loginfo(f"TeamName,password,{location},{clue_value}")
+            msg = f"TeamName,password,{location},{clue_value}"
+
+            self.score_pub.publish(String(data=msg))
+
+    def update_csv3(self, clue_type, clue_value):
+        key = (clue_type, clue_value)
+        self.clue_counts[key] += 1
+
+        # Write the entire file every update
+        with open(self.csv3_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])
+            for (ctype, cval), count in self.clue_counts.items():
+                writer.writerow([ctype, cval, count])
+
+<<<<<<< HEAD
         # Publish clue if seen 10 times
+=======
+        # Publish clue if seen 1 times
+>>>>>>> d6b940c1fdc4360846e87a8b5863ade21b46da9a
         if count == 1:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
             location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
@@ -217,9 +284,116 @@ class clueReader:
         #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            return frame
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+        
+<<<<<<< HEAD
+        board = get_board(frame)
+
+        #Binarize board, then align board to account for perspective differences then extract characters
+        binary = binarize_image(board)
+        contour = find_largest_contour(binary)
+        aligned = warp_perspective_to_rectangle(board, contour)
+        characters = extract_characters_by_contour(aligned)
+        clueChars = extract_characters_by_contour(aligned, y_crop_start=0)
+
+        #Feed each recognised character into CNN to get the clue and type
+        clue = ""
+        for idx, char_img in enumerate(characters):
+            char_img = char_img.astype(np.float32) / 255.0
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            char_img = np.expand_dims(char_img, axis=0)
+
+            prediction = self.model.predict(char_img)[0]
+            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            clue += predicted_label
+
+        clueType=""
+        for idx, char_img in enumerate(clueChars):
+            char_img = char_img.astype(np.float32) / 255.0
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            char_img = np.expand_dims(char_img, axis=0)
+
+            prediction = self.model.predict(char_img)[0]
+            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            clueType += predicted_label
+
+        #Publish if needed
+        rospy.loginfo(f"Detected center clue: {clue}")
+        rospy.loginfo(f"Detected center type: {clueType}")
+
+        self.update_csv1(clueType, clue)
+
+=======
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
+
+    def right_image_callback(self, msg):
+
+        #Enforce cooldown to avoid overload
+        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
+            return
+        self.last_detection_time = rospy.Time.now()
+
+        #Get image from camera feed and isolate the board
+        try:
+            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
+        except Exception as e:
+            rospy.logerr(f"CV Bridge error: {e}")
+            return
+<<<<<<< HEAD
+        
+        board = get_board(frame)
+
+        #Binarize board, then align board to account for perspective differences then extract characters
+        binary = binarize_image(board)
+        contour = find_largest_contour(binary)
+        aligned = warp_perspective_to_rectangle(board, contour)
+        characters = extract_characters_by_contour(aligned)
+
+        #Feed each recognised character into CNN
+        clue = ""
+        for idx, char_img in enumerate(characters):
+            char_img = char_img.astype(np.float32) / 255.0
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            char_img = np.expand_dims(char_img, axis=0)
+
+            prediction = self.model.predict(char_img)[0]
+            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            clue += predicted_label
+
+        #Publish if needed
+        rospy.loginfo(f"Detected right clue: {clue}")
+        rospy.loginfo(f"Detected right type: {clueType}")
+
+        self.update_csv2(clueType, clue)
+=======
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
+
+    def left_image_callback(self, msg):
+
+        #Enforce cooldown to avoid overload
+        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
+            return
+        self.last_detection_time = rospy.Time.now()
+
+        #Get image from camera feed and isolate the board
+        try:
+            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
+        except Exception as e:
+            rospy.logerr(f"CV Bridge error: {e}")
+            return
+
+    def read_board(self,camera):
+        if camera == "left":
+            frame = left_image_callback()
+        elif camera == "right":
+            frame = right_image_callback()
+        else:
+            frame = image_callback()
         
         board = get_board(frame)
 
@@ -252,6 +426,10 @@ class clueReader:
             clueType += predicted_label
 
         #Publish if needed
+<<<<<<< HEAD
+        rospy.loginfo(f"Detected right clue: {clue}")
+        rospy.loginfo(f"Detected right type: {clueType}")
+=======
         rospy.loginfo(f"Detected clue: {clue}")
         rospy.loginfo(f"Detected type: {clueType}")
 
@@ -259,7 +437,9 @@ class clueReader:
 
         msg = f"TeamName,password,2,{clue}"  # Update with real values
         #self.score_pub.publish(String(data=msg))
+>>>>>>> b9841d366d999dc9144fd563cac46037225edef8
 
+        self.update_csv3(clueType, clue)
     
 if __name__ == '__main__':
     clueReader()

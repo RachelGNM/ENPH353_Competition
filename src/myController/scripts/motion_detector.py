@@ -14,31 +14,6 @@ class MotionDetector:
         self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=300, varThreshold=100, detectShadows=True)
 
     def detect_movement(self, image, zone):
-        # height, width, _ = image.shape
-        # image = image[height // 4 : 3 * height // 4, width // 4 : 3 * width // 4]
-
-        # rospy.loginfo("Detecting movement using background subtraction")
-
-        # # Apply the background subtractor
-        # fg_mask = self.bg_subtractor.apply(image)
-
-        # # Optional: Remove noise using morphological operations
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        # fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
-
-        # # Show the foreground mask for debugging
-        # cv2.imshow("Foreground Mask", fg_mask)
-
-        # # Find contours of moving objects
-        # contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # # Return True if movement is detected
-        # if len(contours) > 0:
-        #     rospy.loginfo("Movement detected!")
-        #     return True
-        # else:
-        #     rospy.loginfo("No movement detected.")
-        #     return False
 
         height, width, _ = image.shape
         image = image[height // 4:3* height // 4, :]
@@ -74,7 +49,7 @@ class MotionDetector:
 
             cv2.imshow("Red", image)
 
-            expected_contours = 1
+            expected_contours = 2
         elif zone == 3:
             expected_contours = 3
 
@@ -93,7 +68,7 @@ class MotionDetector:
         if len(contours) > expected_contours:
             rospy.loginfo(f"More than expected contours: {len(contours)}")
         else:
-            rospy.loginfo("No movement")
+            rospy.loginfo(f"No movement: {len(contours)}")
         return len(contours) > expected_contours
 
     

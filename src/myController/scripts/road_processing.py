@@ -10,8 +10,7 @@ from cv_bridge import CvBridge
 
 class RoadProcessing:
     def __init__(self):
-        self.prev_image = None
-        self.three_image = None
+        self.largest_contour = 0
 
     def road_binarize(self, image_feed, zone):
         if zone == 4 or zone < 3:
@@ -35,6 +34,12 @@ class RoadProcessing:
             blur_frame = cv2.GaussianBlur(image_feed, (5, 5), 0)
             # gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
             gray_frame = blur_frame[:,:,1]
+            height, width = gray_frame.shape
+            line_image = image_feed[3* height // 4:, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+            height_after, _, _ = line_image.shape
+            height_threshold = height_after // 2
             frame_no_wall = np.where((gray_frame < wall_threshold), 255, gray_frame)
             _, img_bin = cv2.threshold(frame_no_wall, threshold, 255, cv2.THRESH_BINARY)
             # Get image dimensions
@@ -87,112 +92,16 @@ class RoadProcessing:
         cv2.imshow("Final",final_img)
 
         return final_img
-        # height,_,_ = cv_image.shape
-        # cv_image = cv_image[height // 2: 4 * height // 5,:,:]
-        # cv_image[:,:,1] = cv_image[:,:,0]
-        # cv_image[:,:,2] = cv_image[:,:,0]
-
-        # value = 40
-        # hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
-        # h, s, v = cv2.split(hsv)
-        # # # Apply Contrast Limited Adaptive Histogram Equalization (CLAHE)
-        # # clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-        # # v = clahe.apply(v)
-        
-
-        # # hsv = cv2.merge((h, s, v))
-        # hsv[:,:,2] = cv2.add(hsv[:,:,2], value)
-        # img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        
-        # blur_frame = cv2.GaussianBlur(img, (5, 5), 0)
-
-        # # Define structuring element
-        # erode_kernel = np.ones((7,7), np.uint8)
-
-        # # Perform erosion
-        # erosion = cv2.erode(blur_frame, erode_kernel, iterations = 2)
-
-        # dilate_kernel = np.ones((5,5),np.uint8)
-
-        # dilated_img = cv2.dilate(erosion, dilate_kernel, iterations=1)
-
-        # blur_post_erode = cv2.GaussianBlur(dilated_img,(5,5),0)
-
-        # hsv = cv2.cvtColor(blur_post_erode,cv2.COLOR_BGR2HSV)
-
-        # # Define HSV range for grass
-        # lower = np.array([0, 0, 150])  # Lower bound 
-        # upper = np.array([255, 140, 255])  # Upper bound 
-
-        # # Create mask
-        # grass_mask = cv2.inRange(hsv, lower, upper)
-
-        #  # Find contours
-        # contours, _ = cv2.findContours(grass_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # # Create a fully white image
-        # final_img = np.ones_like(grass_mask) * 255
-
-        # min_contour_area = 250  # Adjust this value based on your setup
-        # for contour in contours:
-        #     if cv2.contourArea(contour) > min_contour_area:
-        #         cv2.drawContours(final_img, [contour], -1, (0), thickness=cv2.FILLED)  # Draw black lines
-        # img_bin = cv2.bitwise_not(final_img)
-
-        # # return img_bin
-
-        # # Debugging: Show the results
-        # # cv2.imshow("Draw", line_mask)
-        # # cv2.imshow("Final", final_img)
-        # cv2.imshow("Final", img_bin)
-        # # cv2.imshow("HSV Mask", grass_mask)
-        # # cv2.imshow("Erosion", erosion)
-
-        # return final_img
-
-        # # # Detect edges using Canny edge detector
-        # # edges = cv2.Canny(grass_mask, 50, 150)
-
-        # # # Apply Hough Line Transform to detect straight lines
-        # # lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi/180, threshold=50, minLineLength=50, maxLineGap=10)
-
-        # # # Create a black image
-        # # line_mask = grass_mask
-        # # height, width = line_mask.shape
-
-        # # leftmost_x =  width//8
-        # # rightmost_x = 7*width//8
-
-        # # # Draw detected lines
-        # # if lines is not None:
-        # #     for line in lines:
-        # #         x1, y1, x2, y2 = line[0]
-        # #         # cv2.line(line_mask, (x1, y1), (x2, y2), 255, thickness=3)  # Adjust thickness as needed
-        # #         leftmost_x = min(leftmost_x, x1)
-        # #         rightmost_x = max(rightmost_x,x2)
-
-        # #         # Find the slope and intercept of the line
-        # #         slope = (y2 - y1) / (x2 - x1) if x2 != x1 else float('inf')
-        # #         intercept = y1 - slope * x1
-
-        # #         # Loop through all pixels and set below the line to black
-        # #         for y in range(height):
-        # #             for x in range(width):
-        # #                 if y < slope * x + intercept:  # Pixel is above the line and between the x values
-        # #                     line_mask[y, x] = 255  # Set it white
-
-        # # return line_mask
-
 
 
     def stopping_point(self, image_feed, zone):
         height, width, _ = image_feed.shape
-        line_image = image_feed[3* height // 4:, :]
-        hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+        if zone < 2:
+            line_image = image_feed[3* height // 4:, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
-        height_after, _, _ = line_image.shape
-        height_threshold = height_after // 2
-        if zone == 2:
+            height_after, _, _ = line_image.shape
+            height_threshold = height_after // 2
             #rospy.loginfo("Checking for red line")
             # Define HSV range for red color (two ranges needed for red hue wrap-around)
             lower_red1 = np.array([0, 100, 100])   # Lower range of red
@@ -210,8 +119,44 @@ class RoadProcessing:
 
             # Extract only the red channel
             line_image = processed_image[:, :, 2]  # Extract the R channel from BGR
+        elif zone == 2:
+            line_image = image_feed[height // 4: 3 * height // 4, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+            height_after, _, _ = line_image.shape
+            height_threshold = height_after // 2
             
-        elif zone > 3: #looking for fuchsia lines
+            # Define the green color range
+            lower_green = np.array([35, 40, 40])   # Lower bound of green (H, S, V)
+            upper_green = np.array([85, 255, 255]) # Upper bound of green (H, S, V)
+
+            # Create the mask
+            mask = cv2.inRange(hsv, lower_green, upper_green)
+
+            # Apply mask to original image (optional)
+            green_mask = cv2.bitwise_and(line_image, line_image, mask=mask)
+
+            line_image = green_mask[:,:,1]
+            cv2.imshow("Green", line_image)
+
+            # Apply thresholding to detect white areas
+            _, binary = cv2.threshold(line_image, 100, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
+
+            binary = binary[height_after // 3: 2 * height_after //3, width // 3: 2 * width // 3]
+
+            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            self.largest_contour = max(len(contours), self.largest_contour)
+            rospy.loginfo(f"NumCont = {len(contours)}, MaxCont = {self.largest_contour}")
+            if self.largest_contour > 130 and len(contours) < 30:
+                return zone, True
+            else:
+                return zone, False
+        elif zone == 4: #looking for fuchsia lines
+            line_image = image_feed[3* height // 4:, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+            height_after, _, _ = line_image.shape
+            height_threshold = height_after // 2
             # rospy.loginfo("Checking for fuchsia line")
             # Define HSV range for fuchsia/magenta
             lower_fuchsia = np.array([140, 100, 100])  # Lower bound
@@ -229,33 +174,33 @@ class RoadProcessing:
 
             # Combine red and blue channels
             line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
-        
-        cv2.imshow("image", line_image)
-        cv2.waitKey(1)
 
-        # Apply thresholding to detect white areas
-        _, binary = cv2.threshold(line_image, 200, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
-        
-        # Find white pixels
-        white_pixels = np.where(binary == 255)
+        if zone == 4 or zone < 2:
+            # Apply thresholding to detect white areas
+            _, binary = cv2.threshold(line_image, 200, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
+            
+            # Find white pixels
+            white_pixels = np.where(binary == 255)
 
-        if len(white_pixels[0]) == 0:
-            return zone, False  # No white pixels found
-        
-        # Get the highest white pixel (smallest y-value)
-        topmost_white_pixel = np.min(white_pixels[0])  # y-coordinate
+            if len(white_pixels[0]) == 0:
+                return zone, False  # No white pixels found
+            
+            # Get the highest white pixel (smallest y-value)
+            topmost_white_pixel = np.min(white_pixels[0])  # y-coordinate
+            # bottommost_white_pixel = np.max(white_pixels[0])
 
-        found = (topmost_white_pixel >= height_threshold and self.detect_horizontal_line(binary))
+            found = (topmost_white_pixel >= height_threshold and self.detect_horizontal_line(binary))
+            # found = (bottommost_white_pixel == 0 and self.detect_horizontal_line(binary))
 
-        if found:
-            if zone < 2:
-                zone = 1
+            if found:
+                if zone == 0:
+                    zone = 1
+                elif zone > 6:
+                    zone += 1
 
-            elif zone > 3:
-                zone += 1
-
-        # Return True if the white line reaches the threshold
-        return zone, found
+            # Return True if the white line reaches the threshold
+            return zone, found
+        return zone, False
 
 
     def detect_horizontal_line(self, binary_image):
@@ -322,10 +267,56 @@ class RoadProcessing:
                 prev_len = len(contour)
                 rospy.loginfo(f"Largest contour: {prev_len}")
 
-            if len(contour) > 100:  # Ignore small noise
+            if len(contour) > 100 and len(contour) < 160: # Ignore small noise
                 rospy.loginfo(f"Large contour: {len(contour)}")
                 return True
 
         return False
+
+    def find_intersection(self,image):
+        image = self.road_binarize(image,2)
+        height, width= image.shape
+
+        image1 = image[7 * height // 16: 5 * height // 8, : width // 4]
+        image2 = image[7 * height // 16: 5 * height // 8, 3* width // 4: ]
+
+        cv2.imshow("Left turn search", image)
+
+        image1 = image1[: height // 2, : width // 4]
+        image2 = image2[: height // 2, 3* width // 4 :]
+        cv2.imshow("Left", image1)
+        cv2.imshow("Right",image2)
+
+        left_road, left_road_img = self.find_intersection_contour(image1) 
+        right_road, right_road_img = self.find_intersection_contour(image2)
+
+        # cv2.imshow("Left", left_road_img)
+        # cv2.imshow("Right", right_road_img)
+
+        return zone, left_road and right_road
+
+    def find_intersection_contour(self, image):
+        if image is not None:
+            image = cv2.GaussianBlur(image, (5, 5), 0)
+            _, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
+
+            contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            prev_len = 0
+
+            # cv2.imshow("Left turn search", image)
+            
+            for contour in contours:
+                if len(contour) > prev_len:
+                    prev_len = len(contour)
+                    rospy.loginfo(f"Largest contour: {prev_len}")
+
+                if len(contour) > 100:  # Ignore small noise
+                    rospy.loginfo(f"Large contour: {len(contour)}")
+                    return True, image
+
+            return False, image
+        else:
+            rospy.loginfo("No image received")
 
 
