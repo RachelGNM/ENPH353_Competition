@@ -7,7 +7,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from road_processing import RoadProcessing
+# from road_processing import RoadProcessing
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -39,7 +39,7 @@ class CameraTesting:
         self.wall_threshold = 82
         self.last_error = 0
 
-        self.road = RoadProcessing()
+        # self.road = RoadProcessing()
         self.prev_image = None
         self.three_image = None
 
@@ -79,7 +79,7 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        self.main_intersection(cv_image)
+        self.test_find_yoda(cv_image)
 
         # self.test_find_blue(cv_image, True)
         # self.grass_road(cv_image)
@@ -89,6 +89,35 @@ class CameraTesting:
         # self.prev_image = cv_image
 
         # rospy.loginfo(f"Movement detected = {true}")
+        cv2.waitKey(1)
+
+    def test_find_yoda (self, cv_image):
+        """
+        @brief process image for finding yoda, display results
+        """
+        height, width, _ = cv_image.shape
+
+        cv_image = cv_image[height //2:,:,:]
+        hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+        # Define HSV range for blue
+        lower_brown = np.array([150, 0, 0])  # Lower bound for blue
+        upper_brown = np.array([255, 60, 60])  # Upper bound for blue
+
+        # Create mask
+        brown_mask = cv2.inRange(hsv, lower_brown, upper_brown)
+
+        # Convert all previously white pixels (255) to black (0)
+        processed_image = cv2.bitwise_and(cv_image, cv_image, mask=brown_mask)
+
+        line_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+        _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
+
+        # cv2.imshow("brown", processed_image)
+        # cv2.imshow("mask", brown_mask)
+        cv2.imshow("bin", img_bin)
+
         cv2.waitKey(1)
 
 

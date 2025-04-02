@@ -40,7 +40,7 @@ class Driver:
         # self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 60
+        self.endpoint = 240
 
         #this is to map where the robot is on the map
         self.zone = 0
@@ -53,7 +53,7 @@ class Driver:
         self.prev_read = False
         self.clue_isRead = False
         self.prev_clue = ""
-        self.time_clue = None
+        # self.time_clue = None
         # self.found_clueboard = None
         
         # Publishers
@@ -84,8 +84,8 @@ class Driver:
         #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
 
         #To average out movement so that there is momentum when in the grassland
-        self.prev_len = 0
-        self.prev_ang = 0
+        # self.prev_len = 0
+        # self.prev_ang = 0
 
         rospy.sleep(2)  # Ensure publishers are ready
 
@@ -143,14 +143,20 @@ class Driver:
         # if self.zone == 2:
         #     stopping_line = self.road_reader.find_intersection(cv_image)
         truck = (self.zone == 3)
-        if self.zone == 5 and clue_spotted:
-            left = False
-            if self.clue % 2 == 0:
-                left = True
-            self.ready_to_read, _ = self.sidecam.process_image(left)
-        stop = stopping_line or (self.zone == 7) or truck or self.ready_to_read or self.prev_waiting
+        # if self.zone == 5 and clue_spotted:
+        #     left = False
+        #     if self.clue % 2 == 0:
+        #         left = True
+        #     self.ready_to_read, _ = self.sidecam.process_image(left)
+        if self.clue == 0:
+            self.move.linear.x = 0
+            self.move.angular.z = 0
+            self.cmd_vel_pub.publish(self.move)
+            time.sleep(3)
+            self.clue = 1
+        stop = stopping_line or (self.zone == 7) or truck or self.prev_waiting 
 
-        if stop == False:
+        if stop == False: 
             # if clue_spotted:
             #     left = False
             #     if self.clue % 2 == 0:
@@ -164,10 +170,10 @@ class Driver:
             self.prev_waiting = False
             self.obstacle = False
             self.increment = 0
-            if self.zone < 5:
-                self.line_follow(img_bin)
-            else:
-                self.line_follow_grass(img_bin)
+            speed_factor = 1
+            if self.zone == 5:
+                speed_factor = 0.5
+            self.line_follow(img_bin,speed_factor)
         else:
             # rospy.loginfo("Stop started")
             rospy.loginfo(f"Zone: {self.zone}")
@@ -198,7 +204,7 @@ class Driver:
                 #Must somehow stay left at the end. Also increment zone after getting past the loop
                 # rospy.loginfo("Stop at zone 3")
                 if not self.obstacle_passed:
-                    self.obstacle_passed = self.wait_for_movement(cv_image, 1, 1.5, 2)
+                    self.obstacle_passed = self.wait_for_movement(cv_image, 1, 1.6, 2)
                 else:
                     img_bin = self.road_reader.road_binarize(cv_image, 3)
                     img_bin1 = self.road_reader.road_binarize(cv_image, 1)
@@ -207,7 +213,7 @@ class Driver:
                     # cv2.imshow("Left", img_bin)
                     # Turn the top section white for line following
                     if self.increment < 50:
-                        self.line_follow(img_bin1)
+                        self.line_follow(img_bin1, 1)
                         self.increment += 1
                     elif self.road_reader.detect_left_turn(img_bin):
                         if self.found_left:
@@ -225,7 +231,7 @@ class Driver:
                         # height, width = img_bin1.shape
                         img_bin = img_bin1[:,width // 2:]
                         # cv2.imshow("Left", img_bin)
-                        self.line_follow(img_bin1)
+                        self.line_follow(img_bin1, 1)
                         self.found_left = False
             elif self.zone == 4: #this is reaching the new biome
                 #Just move forward until stop == false
@@ -236,11 +242,11 @@ class Driver:
                 time.sleep(0.5)
                 self.move.linear.x = 1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.5)
+                time.sleep(0.5)
                 self.move.linear.x = 1
                 self.move.angular.z = -2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(1.3)
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
@@ -291,7 +297,7 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
             time.sleep(delay_go)
 
-    def line_follow(self, img_bin):
+    def line_follow(self, img_bin, speed_factor):
         """
         @brief follow a line by keeping it in the centre of the camera
 
@@ -319,14 +325,14 @@ class Driver:
                     turn = self.Kp * error + self.Kd * (error - self.last_error) / 2
                     self.last_error = error
 
-                    self.move.angular.z = turn
+                    self.move.angular.z = turn * speed_factor
                     if abs(turn) < 0.5:
-                        self.move.linear.x = 1
+                        self.move.linear.x = 1 * speed_factor
                     elif abs(turn) < 0.7:
-                        self.move.linear.x = 0.5
+                        self.move.linear.x = 0.5 * speed_factor
                     else:
-                        self.move.angular.z = turn
-                        self.move.linear.x = 0.08
+                        self.move.angular.z = turn * speed_factor
+                        self.move.linear.x = 0.08 * speed_factor
                     self.cmd_vel_pub.publish(self.move)
 
                 else:
