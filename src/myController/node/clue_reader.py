@@ -198,7 +198,7 @@ class clueReader:
                 writer.writerow([ctype, cval, count])
 
         # Publish clue if seen 10 times
-        if count == 10:
+        if count == 1:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
             location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
             rospy.loginfo(f"TeamName,password,{location},{clue_value}")

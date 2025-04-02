@@ -57,6 +57,13 @@
 /home/fizzer/ros_ws/build/2024_competition/enph353/enph353_npcs/CMakeFiles/rebuild_cache.dir
 /home/fizzer/ros_ws/build/2024_competition/enph353/enph353_npcs/CMakeFiles/edit_cache.dir
 /home/fizzer/ros_ws/build/2024_competition/enph353/enph353_npcs/CMakeFiles/test.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/install/strip.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/install/local.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/install.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/list_install_components.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/rebuild_cache.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/edit_cache.dir
+/home/fizzer/ros_ws/build/myController/CMakeFiles/test.dir
 /home/fizzer/ros_ws/build/2024_competition/robbie/CMakeFiles/install/strip.dir
 /home/fizzer/ros_ws/build/2024_competition/robbie/CMakeFiles/install/local.dir
 /home/fizzer/ros_ws/build/2024_competition/robbie/CMakeFiles/install.dir
