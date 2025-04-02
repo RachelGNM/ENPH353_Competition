@@ -218,9 +218,49 @@ class clueReader:
         #Get image from camera feed and isolate the board
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            return frame
         except Exception as e:
             rospy.logerr(f"CV Bridge error: {e}")
             return
+        
+
+    def right_image_callback(self, msg):
+
+        #Enforce cooldown to avoid overload
+        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
+            return
+        self.last_detection_time = rospy.Time.now()
+
+        #Get image from camera feed and isolate the board
+        try:
+            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
+        except Exception as e:
+            rospy.logerr(f"CV Bridge error: {e}")
+            return
+
+    def left_image_callback(self, msg):
+
+        #Enforce cooldown to avoid overload
+        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
+            return
+        self.last_detection_time = rospy.Time.now()
+
+        #Get image from camera feed and isolate the board
+        try:
+            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
+            return frame
+        except Exception as e:
+            rospy.logerr(f"CV Bridge error: {e}")
+            return
+
+    def read_board(self,camera):
+        if camera == "left":
+            frame = left_image_callback()
+        elif camera == "right":
+            frame = right_image_callback()
+        else:
+            frame = image_callback()
         
         board = get_board(frame)
 
@@ -260,84 +300,6 @@ class clueReader:
 
         msg = f"TeamName,password,2,{clue}"  # Update with real values
         #self.score_pub.publish(String(data=msg))
-
-    def right_image_callback(self, msg):
-
-        #Enforce cooldown to avoid overload
-        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
-            return
-        self.last_detection_time = rospy.Time.now()
-
-        #Get image from camera feed and isolate the board
-        try:
-            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
-        except Exception as e:
-            rospy.logerr(f"CV Bridge error: {e}")
-            return
-        
-        board = get_board(frame)
-
-        #Binarize board, then align board to account for perspective differences then extract characters
-        binary = binarize_image(board)
-        contour = find_largest_contour(binary)
-        aligned = warp_perspective_to_rectangle(board, contour)
-        characters = extract_characters_by_contour(aligned)
-
-        #Feed each recognised character into CNN
-        clue = ""
-        for idx, char_img in enumerate(characters):
-            char_img = char_img.astype(np.float32) / 255.0
-            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
-            char_img = np.expand_dims(char_img, axis=0)
-
-            prediction = self.model.predict(char_img)[0]
-            predicted_label = chr(np.argmax(prediction) + ord('A'))
-            clue += predicted_label
-
-        #Publish if needed
-        rospy.loginfo(f"Detected clue: {clue}")
-        msg = f"TeamName,password,2,{clue}"  # Update with real values
-        # self.score_pub.publish(String(data=msg))
-
-        return clue
-
-    def left_image_callback(self, msg):
-
-        #Enforce cooldown to avoid overload
-        if rospy.Time.now() - self.last_detection_time < self.cooldown_duration:
-            return
-        self.last_detection_time = rospy.Time.now()
-
-        #Get image from camera feed and isolate the board
-        try:
-            frame = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
-        except Exception as e:
-            rospy.logerr(f"CV Bridge error: {e}")
-            return
-        
-        board = get_board(frame)
-
-        #Binarize board, then align board to account for perspective differences then extract characters
-        binary = binarize_image(board)
-        contour = find_largest_contour(binary)
-        aligned = warp_perspective_to_rectangle(board, contour)
-        characters = extract_characters_by_contour(aligned)
-
-        #Feed each recognised character into CNN
-        clue = ""
-        for idx, char_img in enumerate(characters):
-            char_img = char_img.astype(np.float32) / 255.0
-            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
-            char_img = np.expand_dims(char_img, axis=0)
-
-            prediction = self.model.predict(char_img)[0]
-            predicted_label = chr(np.argmax(prediction) + ord('A'))
-            clue += predicted_label
-
-        #Publish if needed
-        rospy.loginfo(f"Detected clue: {clue}")
-        msg = f"TeamName,password,2,{clue}"  # Update with real values
-        # self.score_pub.publish(String(data=msg))
 
         return clue
     
