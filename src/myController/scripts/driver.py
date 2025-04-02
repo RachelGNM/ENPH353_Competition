@@ -16,8 +16,6 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from road_processing import RoadProcessing
 from motion_detector import MotionDetector
 from side_camera import SideCam
-# from clue_reader import clueReader
-# from board_in_frame import boardDetector
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -35,7 +33,6 @@ class Driver:
         self.road_reader = RoadProcessing()
         self.motion_detector = MotionDetector()
         self.sidecam = SideCam()
-        # self.clue_reader = clueReader()
 
         # self.timer_started = False
         self.timer_ended = False
@@ -70,9 +67,6 @@ class Driver:
         self.Kd = 0.3
         self.move = Twist()
         self.last_error = 0
-
-        #Pedestrian movement
-        # self.movement_start_time = None  # Time when the movement started
 
         #These are for finding movement
         self.previous_image = np.zeros((800,800,3), dtype=np.uint8)
@@ -234,12 +228,45 @@ class Driver:
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
+                self.move.linear.x = 0
+                self.move.angular.z = 0.5
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.linear.x = 0
+                self.move.angular.z = -0.5
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
                 self.zone = 6
-                self.ready_to_read = False
-            elif self.zone == 6:
+                rospy.loginfo("Moving to the pond straights after clue 5!")
+            elif self.zone ==6:
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.move.angular.z = 0.5
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.linear.x = 1
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.linear.x = 0
+                self.move.angular.z = -0.5
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.zone = 6
+                rospy.loginfo("Moving to the yoda entrance after clue 6!")
+            elif self.zone == 7:
                 #TODO: Wait for Yoda to pass then hard-code path through grassland
                 self.move.linear.x = 0
-            elif self.zone == 7: #This is right after passing the Yoda land, entering the tunnel
+            elif self.zone == 8: #This is right after passing the Yoda land, entering the tunnel
                 #TODO: Yoda-land should be completed with car facing the correct way to line-follow
                 self.move.linear.x = 0.8
         self.cmd_vel_pub.publish(self.move)

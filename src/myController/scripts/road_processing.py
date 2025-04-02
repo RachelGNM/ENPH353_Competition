@@ -223,7 +223,7 @@ class RoadProcessing:
 
             # Combine red and blue channels
             line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
-        elif zone == 5:
+        elif zone == 5 or zone == 6:
             line_image = line_image[ height // 2:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
@@ -243,16 +243,31 @@ class RoadProcessing:
 
             _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
 
-            # Find all white pixels (nonzero pixels)
-            white_pixels = np.column_stack(np.where(img_bin == 255))
+            contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            # Check if any white pixel reaches the last column
-            if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == img_bin.shape[1] - 1:
+            rospy.loginfo(f"NumCont = {len(contours)}")
+
+            if contours:
+                largest_contour = max(contours, key=cv2.contourArea)
+                largest_area = cv2.contourArea(largest_contour)
+                print(f"Largest Contour Area: {largest_area}")
+                if zone == 5:
+                    if largest_area > 8000:
+                        return zone, True
+            elif zone == 6:
                 return zone, True
-            else:
-                return zone, False
+            #     return zone, False
 
-        elif zone == 6: #looking for fuchsia lines
+            # # Find all white pixels (nonzero pixels)
+            # white_pixels = np.column_stack(np.where(img_bin == 255))
+            # # Check if any white pixel reaches the last column
+            # if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == img_bin.shape[1] - 1:
+            #     # return zone, True
+            #     rospy.loginfo("White pixels have reached right")
+            # else:
+            return zone, False
+
+        elif zone >6: #looking for fuchsia lines
         
             line_image = line_image[3* height // 4:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
