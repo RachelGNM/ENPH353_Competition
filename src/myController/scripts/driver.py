@@ -157,15 +157,6 @@ class Driver:
         stop = stopping_line or (self.zone == 7) or truck or self.prev_waiting 
 
         if stop == False: 
-            # if clue_spotted:
-            #     left = False
-            #     if self.clue % 2 == 0:
-            #         left = True
-            #     self.ready_to_read, _ = self.sidecam.process_image(left)
-            #     if not self.prev_read and self.ready_to_read:
-            #         self.clue += 1
-            #         rospy.loginfo(f"New clue: {self.clue}!")
-            #     self.prev_read = self.ready_to_read 
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             height, width = img_bin.shape
             self.prev_waiting = False

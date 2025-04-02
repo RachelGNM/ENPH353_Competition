@@ -223,7 +223,37 @@ class RoadProcessing:
 
             # Combine red and blue channels
             line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
+        elif zone == 5:
+            line_image = line_image[ height // 2:, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+            height_threshold = 3 * height // 5
+
+            # Define HSV range for blue
+            lower_blue = np.array([100, 0, 100])  # Lower bound for blue
+            upper_blue = np.array([255, 100, 255])  # Upper bound for blue
+
+            # Create mask
+            blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+            # Convert all previously white pixels (255) to black (0)
+            processed_image = cv2.bitwise_and(line_image, line_image, mask=blue_mask)
+
+            line_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+            _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
+
+            # Find all white pixels (nonzero pixels)
+            white_pixels = np.column_stack(np.where(image == 255))
+
+            # Check if any white pixel reaches the last column
+            if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == image.shape[1] - 1:
+                return zone, True
+            else:
+                return zone, False
+
         elif zone == 6: #looking for fuchsia lines
+        
             line_image = line_image[3* height // 4:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
