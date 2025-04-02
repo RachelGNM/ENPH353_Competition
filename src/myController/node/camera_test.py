@@ -35,6 +35,7 @@ class CameraTesting:
 
         self.road = RoadProcessing()
         self.prev_image = None
+        self.three_image = None
 
         rospy.sleep(2)  # Ensure publishers are ready
 
@@ -64,10 +65,10 @@ class CameraTesting:
         cv2.imshow("Input", cv_image)
 
         # self.test_find_blue(cv_image, True)
-
         self.grass_road(cv_image)
 
         # true = self.road.detect_movement(self.prev_image, cv_image)
+        self.three_image = self.prev_image
         self.prev_image = cv_image
 
         # rospy.loginfo(f"Movement detected = {true}")
@@ -105,39 +106,44 @@ class CameraTesting:
 
         cv2.imshow("Bin", img_bin)
 
-    def grass_road(self, cv_image):
-        #Convert frame to binary
+    def grass_road2(self, cv_image):
         height, _, _ = cv_image.shape
         cv_image = cv_image[height // 2:,:,:]
-        blur_frame = cv2.GaussianBlur(cv_image, (15, 15), 0)
-        #gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
+
+        cv_image[:,:,1] = cv_image[:,:,0]
+        cv_image[:,:,2] = cv_image[:,:,0]
 
         value = 40
-
-
-        hsv = cv2.cvtColor(blur_frame,cv2.COLOR_BGR2HSV)
-        hsv[:,:,2] = cv2.add(hsv[:,:,2], value)
+        hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
-        # Apply Contrast Limited Adaptive Histogram Equalization (CLAHE)
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-        v = clahe.apply(v)
+        # # Apply Contrast Limited Adaptive Histogram Equalization (CLAHE)
+        # clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        # v = clahe.apply(v)
+        
 
-        hsv = cv2.merge((h, s, v))
+        # hsv = cv2.merge((h, s, v))
+        hsv[:,:,2] = cv2.add(hsv[:,:,2], value)
         img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        
+        blur_frame = cv2.GaussianBlur(img, (5, 5), 0)
 
         # Define structuring element
-        kernel = np.ones((7,7), np.uint8)
+        erode_kernel = np.ones((7,7), np.uint8)
 
         # Perform erosion
-        erosion = cv2.erode(img, kernel, iterations = 2)
+        erosion = cv2.erode(blur_frame, erode_kernel, iterations = 2)
 
-        blur_post_erode = cv2.GaussianBlur(erosion,(5,5),0)
+        dilate_kernel = np.ones((5,5),np.uint8)
+
+        dilated_img = cv2.dilate(erosion, dilate_kernel, iterations=1)
+
+        blur_post_erode = cv2.GaussianBlur(dilated_img,(5,5),0)
 
         hsv = cv2.cvtColor(blur_post_erode,cv2.COLOR_BGR2HSV)
 
         # Define HSV range for grass
-        lower = np.array([0, 0, 200])  # Lower bound 
-        upper = np.array([255, 120, 255])  # Upper bound 
+        lower = np.array([0, 0, 150])  # Lower bound 
+        upper = np.array([255, 140, 255])  # Upper bound 
 
         # Create mask
         grass_mask = cv2.inRange(hsv, lower, upper)
@@ -146,52 +152,84 @@ class CameraTesting:
         contours, _ = cv2.findContours(grass_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Create a fully white image
-        # final_img = np.ones_like(grass_mask) * 255
+        final_img = np.ones_like(grass_mask) * 255
 
-        # min_contour_area = 150  # Adjust this value based on your setup
-        # for contour in contours:
-        #     if cv2.contourArea(contour) > min_contour_area:
-        #         cv2.drawContours(final_img, [contour], -1, (0), thickness=cv2.FILLED)  # Draw black lines
-        # img_bin = cv2.bitwise_not(final_img)
+        min_contour_area = 250  # Adjust this value based on your setup
+        for contour in contours:
+            if cv2.contourArea(contour) > min_contour_area:
+                cv2.drawContours(final_img, [contour], -1, (0), thickness=cv2.FILLED)  # Draw black lines
+        img_bin = cv2.bitwise_not(final_img)
 
-        # if len(contours) < 2:
-        #     rospy.loginfo("Not enough contours")
-        #     # return np.zeros_like(mask)  # Return empty image if not enough contours found
-
-        # Detect edges using Canny edge detector
-        edges = cv2.Canny(grass_mask, 50, 150)
-
-        # Apply Hough Line Transform to detect straight lines
-        lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi/180, threshold=50, minLineLength=50, maxLineGap=10)
-
-        # Create a black image
-        line_mask = np.zeros_like(grass_mask) * 0
-        height, width = line_mask.shape
-
-        # Draw detected lines
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                # cv2.line(line_mask, (x1, y1), (x2, y2), 255, thickness=3)  # Adjust thickness as needed
-
-                # Find the slope and intercept of the line
-                slope = (y2 - y1) / (x2 - x1) if x2 != x1 else float('inf')
-                intercept = y1 - slope * x1
-
-                # Create a mask for everything below the line
-                # mask = np.ones_like(image) * 255  # White background
-
-                # Loop through all pixels and set below the line to black
-                for y in range(height):
-                    for x in range(width):
-                        if y < slope * x + intercept:  # Pixel is below the line
-                            line_mask[y, x] = 255  # Set it black
-
-        # return line_mask
+        # return img_bin
 
         # Debugging: Show the results
-        cv2.imshow("Draw", line_mask)
-        # cv2.imshow("Final", final_img)
+        # cv2.imshow("Draw", line_mask)
+        cv2.imshow("Final", final_img)
+        cv2.imshow("HSV Increase", blur_post_erode)
+        cv2.imshow("HSV Mask", grass_mask)
+        cv2.imshow("Erosion", erosion)
+
+
+    def grass_road(self, cv_image):
+        #Convert frame to binary
+        height, _, _ = cv_image.shape
+        cv_image = cv_image[height // 2: 4 * height // 5,:,:]
+        #gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
+
+        # value = 40
+        # hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
+        # h, s, v = cv2.split(hsv)
+        # # Apply Contrast Limited Adaptive Histogram Equalization (CLAHE)
+        # clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        # v = clahe.apply(v)
+        
+
+        # hsv = cv2.merge((h, s, v))
+        # hsv[:,:,2] = cv2.add(hsv[:,:,2], value)
+        # img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+        blur_frame = cv2.GaussianBlur(cv_image, (7, 7), 0)
+
+        hsv = cv2.cvtColor(blur_frame,cv2.COLOR_BGR2HSV)
+
+        # Define HSV range for grass
+        lower = np.array([20, 0, 180])  # Lower bound 
+        upper = np.array([40, 70, 255])  # Upper bound 
+
+        # Create mask
+        grass_mask = cv2.inRange(hsv, lower, upper)
+
+        # Define structuring element
+        erode_kernel = np.ones((5,5), np.uint8)
+
+        # Perform erosion
+        erosion = cv2.erode(grass_mask, erode_kernel, iterations = 1)
+
+        dilate_kernel = np.ones((7,7),np.uint8)
+
+        dilated_img = cv2.dilate(erosion, dilate_kernel, iterations=1)
+
+        # blur_frame = cv2.GaussianBlur(img, (5, 5), 0)
+
+         # Find contours
+        contours, _ = cv2.findContours(dilated_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Create a fully white image
+        final_img = np.ones_like(grass_mask) * 255
+
+        min_contour_area = 150  # Adjust this value based on your setup
+        for contour in contours:
+            if cv2.contourArea(contour) > min_contour_area:
+                cv2.drawContours(final_img, [contour], -1, (0), thickness=cv2.FILLED)  # Draw black lines
+        img_bin = cv2.bitwise_not(final_img)
+        dilate_kernel = np.ones((7,7),np.uint8)
+
+        final_img = cv2.dilate(final_img, dilate_kernel, iterations=1)
+        # return img_bin
+
+        # Debugging: Show the results
+        # cv2.imshow("Draw", line_mask)
+        cv2.imshow("Final", final_img)
         # cv2.imshow("HSV Increase", img)
         cv2.imshow("HSV Mask", grass_mask)
         cv2.imshow("Erosion", erosion)

@@ -12,6 +12,7 @@ import time
 from road_processing import RoadProcessing
 from motion_detector import MotionDetector
 from side_camera import SideCam
+from clue_reader import clueReader
 # from board_in_frame import boardDetector
 
 TEAM_NAME = "Smithies"
@@ -24,6 +25,7 @@ class Driver:
         self.road_reader = RoadProcessing()
         self.motion_detector = MotionDetector()
         self.sidecam = SideCam()
+        self.clue_reader = clueReader()
 
         self.timer_started = False
         self.timer_ended = False
@@ -31,7 +33,7 @@ class Driver:
         self.endpoint = 60
 
         #this is to map where the robot is on the map
-        self.zone = 5
+        self.zone = 0
         self.clue = 0
 
         #for clue reading logic
@@ -39,6 +41,7 @@ class Driver:
         self.ready_to_read = False
         self.clue_isRead = False
         self.time_clue = None
+        self.prev_clue = ""
         # self.found_clueboard = None
         
         # Publishers
@@ -110,7 +113,7 @@ class Driver:
         # rospy.loginfo(f"Truck: {truck}")
         self.clues_seen, clue_spotted = self.road_reader.detect_sign(cv_image,self.clue)
         new_clue = (self.clues_seen != self.clue)
-        stop = stopping_line or (self.zone == 6) or truck #or new_clue
+        stop = stopping_line or (self.zone == 6) or truck
 
         if stop == False:
             # rospy.loginfo("No stop")
@@ -120,18 +123,31 @@ class Driver:
                 if (self.clue % 2) == 0:
                     left = True
                 #Find the rectangle
-                self.ready_to_read, clueboard1 = self.sidecam.process_image(left)
-                opposite_ready_to_read, clueboard2 = self.sidecam.process_image(not left)
+                left_read, clueboard1 = self.sidecam.process_image(True)
+                right_read, clueboard2 = self.sidecam.process_image(False)
                 # cv2.imshow("expected", clueboard1)
                 # cv2.imshow("unexpected", clueboard2)
+                self.ready_to_read = left_read or right_read
                 if self.ready_to_read:
+                    clue = ""
                     #TODO: Implement CNN here to read the board
                     #@Alfred input CNN here as a function of clueboard1
+                    if left_read:
+                        clue = self.clue_reader.left_image_callback()
+                    else:
+                        clue = self.clue_reader.right_image_callback()
                     #TODO: if new clue is found, increment self.clue
-                    rospy.loginfo("Correct camera increment")
-                elif opposite_ready_to_read:
-                    #TODO: do the same with clueboard2
-                    rospy.loginfo("Incorrect camera increment")
+                    if not clue == self.prev_clue:
+                        self.clue += 1
+                        #if clue 6 is found, loop around the clueboard (hard-coded)
+                        if self.clue == 6:
+                            self.move.angular.z = 1
+                            self.cmd_vel_pub.publish(self.move)
+                            time.sleep(0.5)
+                            self.move.linear.x = 1
+                            self.move.angular.z = 0
+                            self.cmd_vel_pub.publish(self.move)
+                            time.sleep(0.5)
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
             self.prev_waiting = False
             self.obstacle = False
@@ -234,7 +250,6 @@ class Driver:
             # Compute centroid coordinates
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
                     #Centroid: ({cx}, {cy})
                     error = cx - width / 2
 
@@ -266,8 +281,6 @@ class Driver:
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Process only if at least one contour is found
         height, width = img_bin.shape
-        linear = 0
-        angular = 0
 
         if self.timer_ended == False:
             if contours:
@@ -278,29 +291,26 @@ class Driver:
             # Compute centroid coordinates
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
                     #Centroid: ({cx}, {cy})
                     error = cx - width / 2
 
                     turn = self.Kp * error + self.Kd * (error - self.last_error) / 2
                     self.last_error = error
 
-                    angular = turn / 4
+                    self.move.angular.z = turn / 2
                     if abs(turn) < 0.5:
-                        linear = 0.5
+                        self.move.linear.x = 0.5
                     elif abs(turn) < 0.7:
-                        linear = 0.25
+                        self.move.linear.x = 0.25
                     else:
-                        angular = turn / 4
-                        linear = 0.04
+                        self.move.angular.z = turn / 2
+                        self.move.linear.x = 0.04
+                    self.cmd_vel_pub.publish(self.move)
 
                 else:
-                    linear = -0.2
+                    self.move.linear.x = -0.2
             else:
-                linear = 0.2
-            self.move.linear.x = (linear + 0.5 * self.prev_len) / 1.5
-            self.move.angular.z = (angular + 0.5 * self.prev_ang) / 1.5
-            self.cmd_vel_pub.publish(self.move)
+                self.move.linear.x = -0.2
         else:
             #Stop the robot
             self.move.linear.x = 0
