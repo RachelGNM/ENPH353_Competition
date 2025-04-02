@@ -12,6 +12,12 @@ from road_processing import RoadProcessing
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
 
+"""
+@file camera_test.py
+
+@brief test various image processing functions
+"""
+
 class CameraTesting:
     def __init__(self):
         rospy.init_node('camera_test', anonymous=True)
@@ -42,6 +48,9 @@ class CameraTesting:
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
     def start_timer(self):
+        """
+        @brief start the timer
+        """
         msg = f"{TEAM_NAME},{PASSWORD},0,NA"
         rospy.loginfo(f"Starting timer: {msg}")
         self.timer_pub.publish(msg)
@@ -50,6 +59,9 @@ class CameraTesting:
 
 
     def stop_timer(self):
+        """
+        @brief stop the timer and stop movement
+        """
         if self.timer_started == True:
             msg = f"{TEAM_NAME},{PASSWORD},-1,NA"
             rospy.loginfo(f"Stopping timer: {msg}")
@@ -57,6 +69,9 @@ class CameraTesting:
             self.timer_ended = True
 
     def image_callback(self, msg):
+        """
+        @brief run image processing functions
+        """
         try:
             # Convert ROS image to OpenCV format
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -64,18 +79,23 @@ class CameraTesting:
             rospy.logerr(f"Error converting image: {e}")
         cv2.imshow("Input", cv_image)
 
-        # self.test_find_blue(cv_image, True)
-        self.grass_road(cv_image)
+        self.main_intersection(cv_image)
 
-        # true = self.road.detect_movement(self.prev_image, cv_image)
-        self.three_image = self.prev_image
-        self.prev_image = cv_image
+        # self.test_find_blue(cv_image, True)
+        # self.grass_road(cv_image)
+
+        # # true = self.road.detect_movement(self.prev_image, cv_image)
+        # self.three_image = self.prev_image
+        # self.prev_image = cv_image
 
         # rospy.loginfo(f"Movement detected = {true}")
         cv2.waitKey(1)
 
 
     def three_way_intersection(self, cv_image):
+        """
+        @brief process image for truck intersection, display results
+        """
         #Convert frame to binary
         height, width, _ = cv_image.shape
         cv_image = cv_image[height // 2:,:,:]
@@ -89,8 +109,52 @@ class CameraTesting:
 
         cv2.imshow("Bin", img_bin)
 
+    
+    def main_intersection(self, cv_image):
+        """
+        @brief alternative process image for truck intersection, display results
+
+        @note this serves the same purpose as three_way_intersection 
+        """
+        #Convert frame to binary
+        height, width, _ = cv_image.shape
+        line_image = cv_image[height // 4: 3 * height // 4, :]
+        hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+        height_after, _, _ = line_image.shape
+        height_threshold = height_after // 2
         
+        # Define the green color range
+        lower_green = np.array([35, 40, 40])   # Lower bound of green (H, S, V)
+        upper_green = np.array([85, 255, 255]) # Upper bound of green (H, S, V)
+
+        # Create the mask
+        mask = cv2.inRange(hsv, lower_green, upper_green)
+
+        # Apply mask to original image (optional)
+        green_mask = cv2.bitwise_and(line_image, line_image, mask=mask)
+
+        line_image = green_mask[:,:,1]
+        cv2.imshow("Green", line_image)
+
+        # Apply thresholding to detect white areas
+        _, binary = cv2.threshold(line_image, 100, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
+
+        binary = binary[height_after // 3: 2 * height_after //3, width // 3: 2 * width // 3]
+
+        cv2.imshow("Bin Feed 1", binary)
+        # cv2.imshow("No Wall Feed 1", frame_no_wall)
+        # Get image dimensions
+        # height, width = img_bin.shape
+        # Turn the top half white
+        # img_bin[:height // 2, :] = [255]
+
+        # cv2.imshow("Bin", img_bin)
+
     def main_road(self, cv_image):
+        """
+        @brief process image for the main road for line following, display results
+        """
         #Convert frame to binary
         blur_frame = cv2.GaussianBlur(cv_image, (5, 5), 0)
         # gray_frame = cv2.cvtColor(blur_frame, cv2.COLOR_BGR2GRAY)
@@ -107,6 +171,9 @@ class CameraTesting:
         cv2.imshow("Bin", img_bin)
 
     def grass_road2(self, cv_image):
+        """
+        @brief process image for the grass road, v2, display results
+        """
         height, _, _ = cv_image.shape
         cv_image = cv_image[height // 2:,:,:]
 
@@ -171,6 +238,9 @@ class CameraTesting:
 
 
     def grass_road(self, cv_image):
+        """
+        @brief process image for grass road, v1 and final version, display results
+        """
         #Convert frame to binary
         height, _, _ = cv_image.shape
         cv_image = cv_image[height // 2: 4 * height // 5,:,:]
@@ -236,6 +306,9 @@ class CameraTesting:
         
 
     def test_find_blue (self, cv_image, left):
+        """
+        @brief process image for finding blue clueboards, display results
+        """
         height, width, _ = cv_image.shape
 
         if left:
@@ -264,6 +337,9 @@ class CameraTesting:
         cv2.waitKey(1)
 
     def test_red_and_fuchsia (self,cv_image):
+        """
+        @brief process image for finding stopping lines in red and fuchsia, display results
+        """
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
         # Define HSV range for red color (two ranges needed for red hue wrap-around)
@@ -312,6 +388,9 @@ class CameraTesting:
         cv2.waitKey(1)
 
     def run(self):
+        """
+        @brief run CameraTesting and start camera
+        """
         rospy.loginfo("Starting Camera :)")
         self.start_timer()  # Start timer
 

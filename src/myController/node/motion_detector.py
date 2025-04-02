@@ -8,13 +8,26 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
+"""
+@file motion_detector.py
+
+@brief looks for motion
+"""
+
 class MotionDetector:
     def __init__(self):
         # Initialize the background subtractor (MOG2)
         self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=300, varThreshold=100, detectShadows=True)
 
     def detect_movement(self, image, zone):
+        """
+        @brief processes images depending on zone, then looks for whether len(contours) goes above a threshold
 
+        @param image raw camera feed
+        @param zone robot's location
+
+        @return whether there are more than the contour threshold (ie whether there is an object that isn't supposed to be there)
+        """
         height, width, _ = image.shape
         image = image[height // 4:3* height // 4, :]
         image = cv2.GaussianBlur(image, (5, 5), 0)

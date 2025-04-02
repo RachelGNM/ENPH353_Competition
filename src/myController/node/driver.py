@@ -18,6 +18,12 @@ from side_camera import SideCam
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
 
+"""
+@file driver.py
+
+@brief main code which drives the robot and makes its decisions
+"""
+
 class Driver:
     def __init__(self):
         rospy.init_node('driver', anonymous=True)
@@ -81,7 +87,10 @@ class Driver:
 
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
-    def start_timer(self):
+    def start_timer(self): 
+        """
+        @brief start the timer
+        """
         msg = f"{TEAM_NAME},{PASSWORD},0,NA"
         rospy.loginfo(f"Starting timer: {msg}")
         self.timer_pub.publish(msg)
@@ -90,6 +99,9 @@ class Driver:
 
 
     def stop_timer(self):
+        """
+        @brief stop the timer and stop movement
+        """
         if self.timer_started == True:
             msg = f"{TEAM_NAME},{PASSWORD},-1,NA"
             rospy.loginfo(f"Stopping timer: {msg}")
@@ -102,6 +114,13 @@ class Driver:
         self.cmd_vel_pub.publish(self.move)
 
     def image_callback(self, msg):
+        """
+        @brief move the robot depending on zone
+
+        @details looks for a stopping point, then either line follows or does specific actions depending which zone
+
+        @note make sure self.zone is set to 0 to start (or other if the robot starts in a different spot)
+        """
         try:
             # Convert ROS image to OpenCV format
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -246,6 +265,11 @@ class Driver:
         #param: input image, outputs find_clueboard = true
 
     def pause(self):
+        """
+        @brief pause stop then go for a time dependent on zone
+
+        @note this is not currently being used
+        """
         delay_stop = 1
         go = False
         if self.clue == 0:
@@ -264,6 +288,13 @@ class Driver:
             time.sleep(delay_go)
 
     def line_follow(self, img_bin):
+        """
+        @brief follow a line by keeping it in the centre of the camera
+
+        @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
+
+        @param img_bin binarized road image
+        """
         # Find contours
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Process only if at least one contour is found
@@ -305,6 +336,15 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
 
     def line_follow_grass(self, img_bin):
+        """
+        @brief follow a line by keeping it in the centre of the camera
+
+        @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
+
+        @param img_bin binarized road image
+
+        @note this is much slower movement than line_follow due to poorer image quality
+        """
         # Find contours
         contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Process only if at least one contour is found
@@ -346,6 +386,18 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
 
     def wait_for_movement(self, image, forward_movement, turn, delay):
+        """
+        @brief wait for a moving obstacle to pass by
+
+        @details waits to see if it was already waiting, then waits until movement is True, then waits for movement is False, then completes a movement depending on zone
+
+        @param image raw camera feed
+        @param forward_movement forward speed
+        @param turn angular speed
+        @param delay time length of movement
+
+        @return whether the moving obstacle has passed by and the robot is moving into the next zone
+        """
         #Wait for thing to cross, then zoom through
         if self.prev_waiting:
             rospy.loginfo("Previous waiting was activated")
@@ -388,6 +440,18 @@ class Driver:
         return False
 
     def look_for_clue(self, image, direction):
+        """
+        @brief look for a clueboard, turn to read it, then move on
+
+        @details looks for a clueboard then implements a CNN to read it and show that it has been read
+
+        @param image raw camera image
+        @param direction direction to turn
+
+        @return whether the clue has been read or not
+
+        @note this is an old function which is not in use
+        """
         #This is to turn towards the signs when we see them
         if self.ready_to_read:
             rospy.loginfo("Robot has full view of clueboard")
@@ -418,6 +482,11 @@ class Driver:
         return False
 
     def run(self):
+        """
+        @brief start the timer and run the driver code
+
+        @details if time in sim > maximum time (240s), stop the robot and timer
+        """
         rospy.loginfo("Starting Comp :)")
         self.start_timer()  # Start timer
 

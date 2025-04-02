@@ -9,6 +9,12 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import time
 
+"""
+@file side_camera.py
+
+@brief check the side cameras
+"""
+
 class SideCam:
     def __init__(self):
         self.bridge = CvBridge()
@@ -23,16 +29,41 @@ class SideCam:
         self.left_image_sub = rospy.Subscriber("/B1/rrbot/camera_left/image_left_raw", Image, self.left_image_callback)
 
     def right_image_callback(self, msg):
+        """
+        @brief get image from right camera
+
+        @warn image might be None
+        
+        @todo implement throw exception if image is None
+        """
         self.right_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
 
     def left_image_callback(self, msg):
+        """
+        @brief get image from right camera
+
+        @warn image might be None
+        
+        @todo implement throw exception if image is None
+        """
         self.left_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # Convert to OpenCV format
 
     def get_image(self):
+        """
+        @brief get the images from both cameras
+
+        @returns right and left camera feeds
+        """
         return self.right_image, self.left_image
     
     def process_image(self, left):
-        """Process and return the latest image from the requested camera."""
+        """
+        @brief process for blue rectangle and return the latest image from the requested camera
+        
+        @param left whether the image being processed should be the left one
+
+        @return whether a blue rectangle is found, processed image with drawn box around clueboard
+        """
         image_right, image_left = self.get_image()  # Get the latest image
 
         if left:

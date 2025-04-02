@@ -7,12 +7,24 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+"""
+@file road_processing.py
+@brief the RoadProcessing class reads images depending on the robot's zone and looks for areas of interest
+"""
 
 class RoadProcessing:
     def __init__(self):
         self.largest_contour = 0
 
     def road_binarize(self, image_feed, zone):
+        """
+        @brief binarizes an input image to use for line following
+
+        @param image_feed the raw image from the robot's camera
+        @param zone the zone in which the robot is located
+
+        @return the binarized image
+        """
         if zone == 4 or zone < 3:
             threshold = 90
             wall_threshold = 80
@@ -51,6 +63,13 @@ class RoadProcessing:
 
 
     def grass_to_line(self, cv_image):
+        """
+        @brief takes the image from the grassland and converts it to a binary image such that the line defining the road is black on a white background
+
+        @param cv_image the raw image from the camera feed
+
+        @return binarized image
+        """
         #Convert frame to binary
         height, _, _ = cv_image.shape
         cv_image = cv_image[height // 2: 4 * height // 5,:,:]
@@ -95,6 +114,14 @@ class RoadProcessing:
 
 
     def stopping_point(self, image_feed, zone):
+        """
+        @brief looks for a point of interest at which the robot needs to stop and then not line follow
+
+        @param image_feed raw camera feed
+        @param zone current robot's location
+
+        @return the zone and whether a stopping point was found
+        """
         height, width, _ = image_feed.shape
         if zone < 2:
             line_image = image_feed[3* height // 4:, :]
@@ -204,6 +231,13 @@ class RoadProcessing:
 
 
     def detect_horizontal_line(self, binary_image):
+        """
+        @brief sees if a line is horizontal or near horizontal
+
+        @param binary_image binarized image from stopping_point function
+
+        @return T/F whether there is a found horizontal line
+        """
         if len(binary_image.shape) == 3:
             binary_image = cv2.cvtColor(binary_image, cv2.COLOR_BGR2GRAY)
 
@@ -224,6 +258,14 @@ class RoadProcessing:
         return False  # No horizontal crosswalk detected
 
     def detect_sign(self, image, sign_number):
+        """
+        @brief looks for the blue signs
+
+        @param image raw camera feed
+        @param sign_number number of clueboards found thus far
+
+        @return updated number of clues seen, whether clue was seen
+        """
         height, width, _ = image.shape
         image = image[height // 2 :, :,:]
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -245,6 +287,13 @@ class RoadProcessing:
             return sign_number, False  # No blue detected
     
     def detect_left_turn(self, image):
+        """
+        @brief detects when there is a left turn after following the truck
+
+        @param image raw camera feed
+
+        @return whether it is time to turn left
+        """
         height, width = image.shape
 
         image = image[7 * height // 16: 5 * height // 8, : width // 4]
@@ -274,6 +323,13 @@ class RoadProcessing:
         return False
 
     def find_intersection(self,image):
+        """
+        @brief look for the intersection with the truck
+
+        @param image raw camera feed
+
+        @return whether there is a left road and right road seen
+        """
         image = self.road_binarize(image,2)
         height, width= image.shape
 
@@ -293,9 +349,16 @@ class RoadProcessing:
         # cv2.imshow("Left", left_road_img)
         # cv2.imshow("Right", right_road_img)
 
-        return zone, left_road and right_road
+        return left_road and right_road
 
     def find_intersection_contour(self, image):
+        """
+        @brief find the contours of a binary image and look for a large enough one to be the intersection
+
+        @param image binarized image
+
+        @return whether a large contour is found, processed image
+        """
         if image is not None:
             image = cv2.GaussianBlur(image, (5, 5), 0)
             _, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
