@@ -43,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 4
         self.clue = 0
         self.time_zone = 0
 
@@ -167,6 +167,7 @@ class Driver:
             #         rospy.loginfo(f"New clue: {self.clue}!")
             #     self.prev_read = self.ready_to_read 
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
+            height, width = img_bin.shape
             self.prev_waiting = False
             self.obstacle = False
             self.increment = 0
@@ -240,9 +241,9 @@ class Driver:
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
-                self.move.linear.x = 1
-                self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
+                # self.move.linear.x = 1
+                # self.cmd_vel_pub.publish(self.move)
+                # time.sleep(0.5)
                 self.move.linear.x = 1
                 self.move.angular.z = -2
                 self.cmd_vel_pub.publish(self.move)

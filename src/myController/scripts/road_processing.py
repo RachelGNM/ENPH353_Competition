@@ -57,6 +57,26 @@ class RoadProcessing:
             # Get image dimensions
             height, width = img_bin.shape
             return img_bin
+        elif zone > 6:
+            image_feed = image_feed[height //2:,:,:]
+            hsv = cv2.cvtColor(image_feed, cv2.COLOR_BGR2HSV)
+
+            # Define HSV range for blue
+            lower_brown = np.array([150, 0, 0])  # Lower bound for blue
+            upper_brown = np.array([255, 60, 60])  # Upper bound for blue
+
+            # Create mask
+            brown_mask = cv2.inRange(hsv, lower_brown, upper_brown)
+
+            # Convert all previously white pixels (255) to black (0)
+            processed_image = cv2.bitwise_and(image_feed, image_feed, mask=brown_mask)
+
+            line_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+            _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
+
+            img_bin = cv2.bitwise_not(img_bin)
+            return img_bin
         else:
             return self.grass_to_line(image_feed)
 
@@ -122,9 +142,11 @@ class RoadProcessing:
 
         @return the zone and whether a stopping point was found
         """
-        height, width, _ = image_feed.shape
+        line_image = image_feed
+        height, width, _ = line_image.shape
+        height_threshold = height // 2
         if zone < 2:
-            line_image = image_feed[3* height // 4:, :]
+            line_image = line_image[3* height // 4:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
             height_after, _, _ = line_image.shape
@@ -147,7 +169,7 @@ class RoadProcessing:
             # Extract only the red channel
             line_image = processed_image[:, :, 2]  # Extract the R channel from BGR
         elif zone == 2:
-            line_image = image_feed[height // 4: 3 * height // 4, :]
+            line_image = line_image[height // 4: 3 * height // 4, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
             height_after, _, _ = line_image.shape
@@ -178,8 +200,31 @@ class RoadProcessing:
                 return zone, True
             else:
                 return zone, False
-        elif zone == 4: #looking for fuchsia lines
-            line_image = image_feed[3* height // 4:, :]
+        elif zone == 4:
+            line_image = line_image[ height // 2:, :]
+            hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
+
+            height_after, _, _ = line_image.shape
+            height_threshold = height_after // 3
+            # rospy.loginfo("Checking for fuchsia line")
+            # Define HSV range for fuchsia/magenta
+            lower_fuchsia = np.array([140, 100, 100])  # Lower bound
+            upper_fuchsia = np.array([165, 255, 255])  # Upper bound
+
+            # Create a mask
+            fuchsia_mask = cv2.inRange(hsv, lower_fuchsia, upper_fuchsia)
+
+            # Remove any white pixels (255) from previous processing
+            processed_image = cv2.bitwise_and(line_image, line_image, mask=fuchsia_mask)
+
+            # Extract red and blue channels
+            red_channel = processed_image[:, :, 2]
+            blue_channel = processed_image[:, :, 0]
+
+            # Combine red and blue channels
+            line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
+        elif zone == 6: #looking for fuchsia lines
+            line_image = line_image[3* height // 4:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
             height_after, _, _ = line_image.shape
@@ -202,7 +247,7 @@ class RoadProcessing:
             # Combine red and blue channels
             line_image = cv2.addWeighted(red_channel, 0.5, blue_channel, 0.5, 0)
 
-        if zone == 4 or zone < 2:
+        if not zone == 3:
             # Apply thresholding to detect white areas
             _, binary = cv2.threshold(line_image, 200, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
             
