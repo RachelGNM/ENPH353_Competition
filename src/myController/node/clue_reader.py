@@ -177,7 +177,6 @@ class clueReader:
 
 
         rospy.loginfo("Clue Board Detector with CNN ready.")
-        rospy.spin()
 
     def init_csv(self):
         self.csv_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database.csv")
@@ -200,7 +199,7 @@ class clueReader:
                 writer.writerow([ctype, cval, count])
 
         # Publish clue if seen 10 times
-        if count == 10:
+        if count == 1:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
             location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
             rospy.loginfo(f"TeamName,password,{location},{clue_value}")
@@ -298,7 +297,7 @@ class clueReader:
         #Publish if needed
         rospy.loginfo(f"Detected clue: {clue}")
         msg = f"TeamName,password,2,{clue}"  # Update with real values
-        self.score_pub.publish(String(data=msg))
+        # self.score_pub.publish(String(data=msg))
 
         return clue
 
@@ -338,9 +337,10 @@ class clueReader:
         #Publish if needed
         rospy.loginfo(f"Detected clue: {clue}")
         msg = f"TeamName,password,2,{clue}"  # Update with real values
-        self.score_pub.publish(String(data=msg))
+        # self.score_pub.publish(String(data=msg))
 
         return clue
     
 if __name__ == '__main__':
     clueReader()
+    # rospy.spin()

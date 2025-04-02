@@ -133,9 +133,9 @@ class Driver:
                     #TODO: Implement CNN here to read the board
                     #@Alfred input CNN here as a function of clueboard1
                     if left_read:
-                        clue = self.clue_reader.left_image_callback()
+                        clue = self.clue_reader.left_image_callback(msg)
                     else:
-                        clue = self.clue_reader.right_image_callback()
+                        clue = self.clue_reader.right_image_callback(msg)
                     #TODO: if new clue is found, increment self.clue
                     if not clue == self.prev_clue:
                         self.clue += 1
