@@ -6,9 +6,12 @@ import numpy as np
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
+import csv
+import os
 
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from collections import defaultdict
 
 """
 Node that looks for clues in the image feed and detects whether or not there is a board in the image (prints status message of detection).
@@ -143,13 +146,24 @@ class clueReader:
     def __init__(self):
         # rospy.init_node('clue_reader', anonymous=True)
 
+        self.clue_location_lookup = {
+            "SIZE": 1,
+            "VICTIM": 2,
+            "CRIME": 3,
+            "TIME": 4,
+            "PLACE": 5,
+            "MOTIVE": 6,
+            "WEAPON": 7,
+            "BANDIT": 8
+        }
+
+
         self.last_detection_time = rospy.Time.now()
-        self.cooldown_duration = rospy.Duration(0.5)  # 1 second between detections
+        self.cooldown_duration = rospy.Duration(0.25)  # 1 second between detections
         
         # Load the model
         model_path = "/home/fizzer/ros_ws/src/myController/models/clue__recog_cnn.h5"
         self.model = load_model(model_path)
-
 
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/B1/rrbot/camera1/image_raw", Image, self.image_callback)
@@ -157,8 +171,43 @@ class clueReader:
         self.left_image_sub = rospy.Subscriber("/B1/rrbot/camera_left/image_left_raw", Image, self.left_image_callback)
         self.score_pub = rospy.Publisher("/score_tracker", String, queue_size=10)
 
+        # Set up SQLite database
+        db_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database.csv")
+        self.init_csv()
+
+
         rospy.loginfo("Clue Board Detector with CNN ready.")
         rospy.spin()
+
+    def init_csv(self):
+        self.csv_path = os.path.expanduser("/home/fizzer/ros_ws/src/imgRecog/clue_database.csv")
+        self.clue_counts = defaultdict(int)
+
+        # Start with a fresh file each run
+        with open(self.csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])  # Header
+
+    def update_csv(self, clue_type, clue_value):
+        key = (clue_type, clue_value)
+        self.clue_counts[key] += 1
+
+        # Write the entire file every update
+        with open(self.csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Clue Type", "Clue Value", "Count"])
+            for (ctype, cval), count in self.clue_counts.items():
+                writer.writerow([ctype, cval, count])
+
+        # Publish clue if seen 10 times
+        if count == 10:
+            rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
+            location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
+            rospy.loginfo(f"TeamName,password,{location},{clue_value}")
+            msg = f"TeamName,password,{location},{clue_value}"
+
+            self.score_pub.publish(String(data=msg))
+
 
     def image_callback(self, msg):
 
@@ -181,8 +230,9 @@ class clueReader:
         contour = find_largest_contour(binary)
         aligned = warp_perspective_to_rectangle(board, contour)
         characters = extract_characters_by_contour(aligned)
+        clueChars = extract_characters_by_contour(aligned, y_crop_start=0)
 
-        #Feed each recognised character into CNN
+        #Feed each recognised character into CNN to get the clue and type
         clue = ""
         for idx, char_img in enumerate(characters):
             char_img = char_img.astype(np.float32) / 255.0
@@ -193,10 +243,24 @@ class clueReader:
             predicted_label = chr(np.argmax(prediction) + ord('A'))
             clue += predicted_label
 
+        clueType=""
+        for idx, char_img in enumerate(clueChars):
+            char_img = char_img.astype(np.float32) / 255.0
+            char_img = cv2.cvtColor(char_img, cv2.COLOR_GRAY2RGB)
+            char_img = np.expand_dims(char_img, axis=0)
+
+            prediction = self.model.predict(char_img)[0]
+            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            clueType += predicted_label
+
         #Publish if needed
         rospy.loginfo(f"Detected clue: {clue}")
+        rospy.loginfo(f"Detected type: {clueType}")
+
+        self.update_csv(clueType, clue)
+
         msg = f"TeamName,password,2,{clue}"  # Update with real values
-        self.score_pub.publish(String(data=msg))
+        #self.score_pub.publish(String(data=msg))
 
     def right_image_callback(self, msg):
 
