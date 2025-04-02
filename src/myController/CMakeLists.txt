@@ -188,6 +188,15 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
+## Install Python scripts
+catkin_install_python(PROGRAMS
+  scripts/driver.py
+  scripts/left_reader.py
+  scripts/right_reader.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
 #############
 ## Testing ##
 #############

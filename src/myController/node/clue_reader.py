@@ -260,7 +260,11 @@ class clueReader:
             for (ctype, cval), count in self.clue_counts.items():
                 writer.writerow([ctype, cval, count])
 
+<<<<<<< HEAD
+        # Publish clue if seen 10 times
+=======
         # Publish clue if seen 1 times
+>>>>>>> d6b940c1fdc4360846e87a8b5863ade21b46da9a
         if count == 1:
             rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 20 detections.")
             location = self.clue_location_lookup.get(clue_type.upper(), 0)  # default to 0 if unknown
