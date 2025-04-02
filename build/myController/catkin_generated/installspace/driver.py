@@ -40,10 +40,10 @@ class Driver:
         # self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 240
+        self.endpoint = 60
 
         #this is to map where the robot is on the map
-        self.zone = 4
+        self.zone = 0
         self.clue = 0
         self.time_zone = 0
 
@@ -91,7 +91,7 @@ class Driver:
 
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
-    def start_timer(self): 
+    def start_timer(self):
         """
         @brief start the timer
         """
@@ -143,16 +143,12 @@ class Driver:
         # if self.zone == 2:
         #     stopping_line = self.road_reader.find_intersection(cv_image)
         truck = (self.zone == 3)
-<<<<<<< HEAD:build/myController/catkin_generated/installspace/driver.py
-        stop = stopping_line or (self.zone == 6) or truck
-=======
         if self.zone == 5 and clue_spotted:
             left = False
             if self.clue % 2 == 0:
                 left = True
             self.ready_to_read, _ = self.sidecam.process_image(left)
         stop = stopping_line or (self.zone == 7) or truck or self.ready_to_read or self.prev_waiting
->>>>>>> d6b940c1fdc4360846e87a8b5863ade21b46da9a:src/myController/node/driver.py
 
         if stop == False:
             # if clue_spotted:
@@ -191,16 +187,11 @@ class Driver:
                     self.obstacle_passed = False
                     # self.time_zone = rospy.Time.now().to_sec()
                     # rospy.loginfo(f"Time zone set to: {self.time_zone}")
-<<<<<<< HEAD:build/myController/catkin_generated/installspace/driver.py
-            elif self.zone == 2 and self.clue == 3:
-                rospy.loginfo("Moving onto zone 3!")
-=======
             elif self.zone == 2:
                 rospy.loginfo("Moving onto zone 3!")
                 self.move.linear.x = 1
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
->>>>>>> d6b940c1fdc4360846e87a8b5863ade21b46da9a:src/myController/node/driver.py
                 self.zone = 3
             elif self.zone == 3:
                 #Wait for truck then turn left, line follow, and turn left at intersection again
