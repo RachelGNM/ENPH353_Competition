@@ -131,9 +131,9 @@ class Driver:
             self.move.linear.x = 0
             self.move.angular.z = 0
             self.cmd_vel_pub.publish(self.move)
-            time.sleep(3)
+            time.sleep(6)
             self.clue = 1
-        stop = stopping_line or (self.zone == 8) or truck or self.prev_waiting 
+        stop = stopping_line or (self.zone == 8) or truck or self.prev_waiting or (self.clue == 0)
 
         if stop == False: 
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
@@ -151,9 +151,9 @@ class Driver:
             # rospy.loginfo("Stop started")
             rospy.loginfo(f"Zone: {self.zone}")
             # make sure it actually stops
+
             self.move.linear.x = 0
             self.move.angular.z = 0
-
             #make actions dependent on zone. I need to make a map of these zones for myself in my logbook
             if self.zone == 1:
                 # rospy.loginfo("Stop at zone 1")
@@ -219,7 +219,7 @@ class Driver:
                 self.move.linear.x = 1
                 self.move.angular.z = -2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.3)
+                time.sleep(2.6)
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
@@ -261,11 +261,11 @@ class Driver:
                 self.move.angular.z = 1
                 self.move.linear.x = 0.7
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.5)
+                time.sleep(5)
                 self.move.linear.x = 0
                 self.move.angular.z = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2)
+                time.sleep(4)
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
@@ -283,14 +283,14 @@ class Driver:
                 #back up to see the sign
                 self.move.linear.x = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.5)
+                time.sleep(3)
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(4)
                 #zoomin through the tunnel
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(5.1)
+                time.sleep(10.2)
                 #Robbie deserves a nap
                 self.move.linear.x = 0
                 self.move.angular.z = 0
@@ -300,46 +300,46 @@ class Driver:
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.8)
+                time.sleep(5.6)
                 #Turn the corner
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.7)
+                time.sleep(3.4)
                 #Turn the corner
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.6)
+                time.sleep(3.2)
                 #Turn the corner to the top
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0.5
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.4)
+                time.sleep(0.8)
                 self.move.angular.z = 1
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.3)
+                time.sleep(3.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 0.5
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.3)
+                time.sleep(2.6)
                 self.zone = 9
             elif self.zone == 9:
                 self.move.linear.x = 0
@@ -349,28 +349,28 @@ class Driver:
 
         previous_image = cv_image
 
-    def pause(self):
-        """
-        @brief pause stop then go for a time dependent on zone
+    # def pause(self):
+    #     """
+    #     @brief pause stop then go for a time dependent on zone
 
-        @note this is not currently being used
-        """
-        delay_stop = 1
-        go = False
-        if self.clue == 0:
-            delay_go = 2.5
-            go = True
-        else:
-            delay_go = 0.5
-            go = True
-        self.move.linear.x = 0
-        self.move.angular.z = 0
-        self.cmd_vel_pub.publish(self.move)
-        time.sleep(delay_stop)
-        if go:
-            self.move.linear.x = 1
-            self.cmd_vel_pub.publish(self.move)
-            time.sleep(delay_go)
+    #     @note this is not currently being used
+    #     """
+    #     delay_stop = 1
+    #     go = False
+    #     if self.clue == 0:
+    #         delay_go = 2.5
+    #         go = True
+    #     else:
+    #         delay_go = 0.5
+    #         go = True
+    #     self.move.linear.x = 0
+    #     self.move.angular.z = 0
+    #     self.cmd_vel_pub.publish(self.move)
+    #     time.sleep(delay_stop)
+    #     if go:
+    #         self.move.linear.x = 1
+    #         self.cmd_vel_pub.publish(self.move)
+    #         time.sleep(delay_go)
 
     def line_follow(self, img_bin, speed_factor):
         """
@@ -421,55 +421,55 @@ class Driver:
             self.move.angular.z = 0
             self.cmd_vel_pub.publish(self.move)
 
-    def line_follow_grass(self, img_bin):
-        """
-        @brief follow a line by keeping it in the centre of the camera
+    # def line_follow_grass(self, img_bin):
+    #     """
+    #     @brief follow a line by keeping it in the centre of the camera
 
-        @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
+    #     @details finds the largest contour, finds the distance between its centre and the centre of the frame, then moves depending on that error
 
-        @param img_bin binarized road image
+    #     @param img_bin binarized road image
 
-        @note this is much slower movement than line_follow due to poorer image quality
-        """
-        # Find contours
-        contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # Process only if at least one contour is found
-        height, width = img_bin.shape
+    #     @note this is much slower movement than line_follow due to poorer image quality
+    #     """
+    #     # Find contours
+    #     contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #     # Process only if at least one contour is found
+    #     height, width = img_bin.shape
 
-        if self.timer_ended == False:
-            if contours:
-                # Find the largest contour (assuming it's the main object)
-                c = max(contours, key=cv2.contourArea)
-                # Compute moments
-                M = cv2.moments(c)
-            # Compute centroid coordinates
-                if M["m00"] != 0:
-                    cx = int(M["m10"] / M["m00"])
-                    #Centroid: ({cx}, {cy})
-                    error = cx - width / 2
+    #     if self.timer_ended == False:
+    #         if contours:
+    #             # Find the largest contour (assuming it's the main object)
+    #             c = max(contours, key=cv2.contourArea)
+    #             # Compute moments
+    #             M = cv2.moments(c)
+    #         # Compute centroid coordinates
+    #             if M["m00"] != 0:
+    #                 cx = int(M["m10"] / M["m00"])
+    #                 #Centroid: ({cx}, {cy})
+    #                 error = cx - width / 2
 
-                    turn = self.Kp * error + self.Kd * (error - self.last_error) / 2
-                    self.last_error = error
+    #                 turn = self.Kp * error + self.Kd * (error - self.last_error) / 2
+    #                 self.last_error = error
 
-                    self.move.angular.z = turn / 2
-                    if abs(turn) < 0.5:
-                        self.move.linear.x = 0.5
-                    elif abs(turn) < 0.7:
-                        self.move.linear.x = 0.25
-                    else:
-                        self.move.angular.z = turn / 2
-                        self.move.linear.x = 0.04
-                    self.cmd_vel_pub.publish(self.move)
+    #                 self.move.angular.z = turn / 2
+    #                 if abs(turn) < 0.5:
+    #                     self.move.linear.x = 0.5
+    #                 elif abs(turn) < 0.7:
+    #                     self.move.linear.x = 0.25
+    #                 else:
+    #                     self.move.angular.z = turn / 2
+    #                     self.move.linear.x = 0.04
+    #                 self.cmd_vel_pub.publish(self.move)
 
-                else:
-                    self.move.linear.x = -0.2
-            else:
-                self.move.linear.x = -0.2
-        else:
-            #Stop the robot
-            self.move.linear.x = 0
-            self.move.angular.z = 0
-            self.cmd_vel_pub.publish(self.move)
+    #             else:
+    #                 self.move.linear.x = -0.2
+    #         else:
+    #             self.move.linear.x = -0.2
+    #     else:
+    #         #Stop the robot
+    #         self.move.linear.x = 0
+    #         self.move.angular.z = 0
+    #         self.cmd_vel_pub.publish(self.move)
 
     def wait_for_movement(self, image, forward_movement, turn, delay):
         """
@@ -525,47 +525,47 @@ class Driver:
         time.sleep(0.05)
         return False
 
-    def look_for_clue(self, image, direction):
-        """
-        @brief look for a clueboard, turn to read it, then move on
+    # def look_for_clue(self, image, direction):
+    #     """
+    #     @brief look for a clueboard, turn to read it, then move on
 
-        @details looks for a clueboard then implements a CNN to read it and show that it has been read
+    #     @details looks for a clueboard then implements a CNN to read it and show that it has been read
 
-        @param image raw camera image
-        @param direction direction to turn
+    #     @param image raw camera image
+    #     @param direction direction to turn
 
-        @return whether the clue has been read or not
+    #     @return whether the clue has been read or not
 
-        @note this is an old function which is not in use
-        """
-        #This is to turn towards the signs when we see them
-        if self.ready_to_read:
-            rospy.loginfo("Robot has full view of clueboard")
-            if self.clue_isRead:
-                #if the clueboard has been read, turn back towards the road
-                self.move.angular.z = - direction 
-                self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
-                self.clue_isRead = False
-                return True
-            else:
-                rospy.loginfo("Waiting to read clueboard")
-                self.move.linear.x = 0
-                self.move.angular.z = 0
-                self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
-                #if there has been no clue read, must read the clueboard
-                if True: #TODO: insert Alfred's function here to read a clueboard
-                    self.clue_isRead = True
-        else:
-            rospy.loginfo("Robot found clueboard, rotating to find clueboard")
-            #The robot stops moving after initial stop
-            self.move.linear.x = 0
-            self.move.angular.z = direction
-            #TODO: make ready_to_read == is full rectangle showing, should be Alfred's code
-            self.ready_to_read = True
-        self.cmd_vel_pub.publish(self.move)
-        return False
+    #     @note this is an old function which is not in use
+    #     """
+    #     #This is to turn towards the signs when we see them
+    #     if self.ready_to_read:
+    #         rospy.loginfo("Robot has full view of clueboard")
+    #         if self.clue_isRead:
+    #             #if the clueboard has been read, turn back towards the road
+    #             self.move.angular.z = - direction 
+    #             self.cmd_vel_pub.publish(self.move)
+    #             time.sleep(0.5)
+    #             self.clue_isRead = False
+    #             return True
+    #         else:
+    #             rospy.loginfo("Waiting to read clueboard")
+    #             self.move.linear.x = 0
+    #             self.move.angular.z = 0
+    #             self.cmd_vel_pub.publish(self.move)
+    #             time.sleep(1)
+    #             #if there has been no clue read, must read the clueboard
+    #             if True: #TODO: insert Alfred's function here to read a clueboard
+    #                 self.clue_isRead = True
+    #     else:
+    #         rospy.loginfo("Robot found clueboard, rotating to find clueboard")
+    #         #The robot stops moving after initial stop
+    #         self.move.linear.x = 0
+    #         self.move.angular.z = direction
+    #         #TODO: make ready_to_read == is full rectangle showing, should be Alfred's code
+    #         self.ready_to_read = True
+    #     self.cmd_vel_pub.publish(self.move)
+    #     return False
 
     def run(self):
         """
