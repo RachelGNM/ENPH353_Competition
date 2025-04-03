@@ -43,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 4
+        self.zone = 7
         self.clue = 0
         self.time_zone = 0
 
@@ -53,8 +53,6 @@ class Driver:
         self.prev_read = False
         self.clue_isRead = False
         self.prev_clue = ""
-        # self.time_clue = None
-        # self.found_clueboard = None
         
         # Publishers
         self.timer_pub = rospy.Publisher('/score_tracker', String, queue_size=1)
@@ -78,7 +76,6 @@ class Driver:
         self.obstacle_passed = False
         self.increment = 0
         self.found_left = False
-        #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
 
         rospy.sleep(2)  # Ensure publishers are ready
 
@@ -147,8 +144,8 @@ class Driver:
             speed_factor = 1
             if self.zone >= 5:
                 speed_factor = 0.5
-                if self.zone == 8:
-                    speed_factor = 1.5
+                if self.zone == 9:
+                    speed_factor = 0
             self.line_follow(img_bin,speed_factor)
         else:
             # rospy.loginfo("Stop started")
@@ -278,11 +275,34 @@ class Driver:
                     spawn_position(post_yoda_pos)
                     rospy.loginfo("Following the yoda, the yoda, the yoda wherever he may go :)")
             elif self.zone == 8: #This is right after passing the Yoda land, entering the tunnel
-                #TODO: Yoda-land should be completed with car facing the correct way to line-follow
+                #Yoda-land should be completed with car facing the correct way to line-follow
+                self.move.linear.x = -1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(2)
+                self.move.linear.x = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(2)
+                self.move.linear.x = 2
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(5)
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1)
+                self.move.angular.z = 1.5
                 self.move.linear.x = 0.8
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.5)
+                self.move.angular.z = 0
+                self.move.linear.x = 2
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(4)
+                self.zone = 9
+            elif self.zone == 9:
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
         self.cmd_vel_pub.publish(self.move)
-
-        cv2.imshow("camera feed", cv_image)
 
         previous_image = cv_image
 
