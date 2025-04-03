@@ -187,7 +187,7 @@ class Driver:
                     # img_bin = img_bin[:,:width // 2]
                     # cv2.imshow("Left", img_bin)
                     # Turn the top section white for line following
-                    if self.increment < 100:
+                    if self.increment < 200:
                         self.line_follow(img_bin1, 1)
                         self.increment += 1
                     elif self.road_reader.detect_left_turn(img_bin):
@@ -345,7 +345,11 @@ class Driver:
                 self.move.angular.z = 1
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
+<<<<<<< HEAD
+                time.sleep(2.6)
+=======
                 time.sleep(3.2)
+>>>>>>> 2a71933a2390c9a2b037f855337cfd535fdb60c5
                 self.move.angular.z = 0
                 self.move.linear.x = 0.5
                 self.cmd_vel_pub.publish(self.move)
