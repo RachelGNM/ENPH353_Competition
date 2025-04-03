@@ -159,7 +159,7 @@ class clueReader:
         self.cooldown_duration = rospy.Duration(0.2)  # 0.25 second between detections
         
         # Load the model
-        model_path = "/home/fizzer/ros_ws/src/myController/models/clue__recog_cnn.h5"
+        model_path = "/home/fizzer/ros_ws/src/myController/models/clue__recog_cnn_numin.h5"
         self.model = load_model(model_path)
 
         self.bridge = CvBridge()
@@ -212,6 +212,22 @@ class clueReader:
                 msg = f"TeamName,password,{location},{best_value}"
                 self.score_pub.publish(String(data=msg))
 
+            # if matching_clues:
+            #     # Get the max length of clue values
+            #     max_len = max(len(clue[1]) for clue in matching_clues)
+
+            #     # Get all clues that match the max length
+            #     best_clues = [clue for clue in matching_clues if len(clue[1]) == max_len]
+
+            #     # Choose one (you could refine this if needed)
+            #     best_type, best_value = best_clues[len(best_clues)]
+
+            #     location = self.clue_location_lookup.get(best_type[0], 9)  # default to 9
+            #     rospy.loginfo(f"Publishing best clue '{best_value}' of type '{best_type}' for prefix '{prefix}'")
+            #     msg = f"TeamName,password,{location},{best_value}"
+            #     self.score_pub.publish(String(data=msg))
+
+
 
     def image_callback(self, msg):
 
@@ -247,7 +263,17 @@ class clueReader:
             char_img = np.expand_dims(char_img, axis=0)
 
             prediction = self.model.predict(char_img)[0]
-            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            
+            # For no numbers
+            #predicted_label = chr(np.argmax(prediction) + ord('A'))
+
+            # For numbers in
+            class_labels = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+            # Decode predicted class
+            predicted_index = np.argmax(prediction)
+            predicted_label = class_labels[predicted_index]
+
             clue += predicted_label
 
         clueType=""
@@ -257,7 +283,15 @@ class clueReader:
             char_img = np.expand_dims(char_img, axis=0)
 
             prediction = self.model.predict(char_img)[0]
-            predicted_label = chr(np.argmax(prediction) + ord('A'))
+            # For no numbers
+            #predicted_label = chr(np.argmax(prediction) + ord('A'))
+
+            # For numbers in
+            class_labels = list("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+            # Decode predicted class
+            predicted_index = np.argmax(prediction)
+            predicted_label = class_labels[predicted_index]
             clueType += predicted_label
 
         #Publish if needed

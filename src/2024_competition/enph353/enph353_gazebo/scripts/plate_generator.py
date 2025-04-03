@@ -46,19 +46,6 @@ def loadCrimesProfileCompetition():
 
     return clues
 
-def loadClues():
-    script_path = os.path.dirname(os.path.realpath(__file__)) + "/"
-    clues = {}
-
-    # Read from plates.csv
-    with open(script_path + "plates.csv", 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            key, value = row
-            clues[key] = value
-
-    return clues
-
 # Find the path to this script
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/"
 TEXTURE_PATH = '../media/materials/textures/'
@@ -68,7 +55,7 @@ PLATE_HEIGHT = 600
 PLATE_WIDTH = banner_canvas.shape[1]
 IMG_DEPTH = 3
 
-clues = loadClues()
+clues = loadCrimesProfileCompetition()
 
 i = 0
 for key, value in clues.items():

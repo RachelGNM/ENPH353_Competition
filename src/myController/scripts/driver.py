@@ -40,10 +40,10 @@ class Driver:
         # self.timer_started = False
         self.timer_ended = False
         self.start_time = None
-        self.endpoint = 240
+        self.endpoint = 360
 
         #this is to map where the robot is on the map
-        self.zone = 4
+        self.zone = 0
         self.clue = 0
         self.time_zone = 0
 
@@ -237,7 +237,7 @@ class Driver:
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.move.linear.x = 0
-                self.move.angular.z = 1.5
+                self.move.angular.z = 1.7
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.7)
                 self.move.linear.x = 1
@@ -345,11 +345,7 @@ class Driver:
                 self.move.angular.z = 1
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
-<<<<<<< HEAD
-                time.sleep(2.6)
-=======
                 time.sleep(3.2)
->>>>>>> 2a71933a2390c9a2b037f855337cfd535fdb60c5
                 self.move.angular.z = 0
                 self.move.linear.x = 0.5
                 self.cmd_vel_pub.publish(self.move)

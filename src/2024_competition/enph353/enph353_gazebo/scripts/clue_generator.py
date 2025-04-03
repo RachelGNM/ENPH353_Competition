@@ -18,7 +18,7 @@ def generateClues():
 
     prompt = f"""You will generate clues that describe a potential funny crime 
                 for your game in random order. 
-                The clues must have less than 13 characters, no more than 2 words, and not contain numbers. 
+                The clues must have less than 13 characters. 
                 Use themes from planet Earth.
                 Display the clues in the following order:
                     NUMBER OF VICTIMS
@@ -29,8 +29,6 @@ def generateClues():
                     WHY WAS THE CRIME COMMITED
                     WHAT WEAPON WAS THE CRIME COMMITED WITH
                     WHO WAS THE CRIMINAL
-
-                    Return only the clues, separated by newlines.
                 """
 
     completion = client.chat.completions.create(
