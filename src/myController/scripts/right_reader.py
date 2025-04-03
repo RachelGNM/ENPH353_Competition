@@ -193,14 +193,24 @@ class clueReader:
             for (ctype, cval), count in self.clue_counts.items():
                 writer.writerow([ctype, cval, count])
 
-        # Publish clue if seen 5 times
+        # Publish the longest clue if it just hit the threshold
         if count == 2:
-            rospy.loginfo(f"Publishing clue '{clue_value}' of type '{clue_type}' after 5 detections.")
-            location = self.clue_location_lookup.get(clue_type[0], 0)  # default to 0 if unknown
-            rospy.loginfo(f"TeamName,password,{location},{clue_value}")
-            msg = f"TeamName,password,{location},{clue_value}"
+            prefix = clue_type[0].upper()
+            # Filter all clue entries that match this prefix and have count >= 2
+            matching_clues = [
+                (ctype, cval) for (ctype, cval), cnt in self.clue_counts.items()
+                if ctype.startswith(prefix) and cnt >= 2
+            ]
+            if matching_clues:
+                # Choose the one with the longest clue value
+                best_clue = max(matching_clues, key=lambda x: len(x[1]))
+                best_type, best_value = best_clue
 
-            self.score_pub.publish(String(data=msg))
+                location = self.clue_location_lookup.get(best_type[0], 0)  # default to 0
+                rospy.loginfo(f"Publishing best clue '{best_value}' of type '{best_type}' for prefix '{prefix}'")
+                msg = f"TeamName,password,{location},{best_value}"
+                self.score_pub.publish(String(data=msg))
+
 
 
     def image_callback(self, msg):
