@@ -43,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 7
+        self.zone = 0
         self.clue = 0
         self.time_zone = 0
 
@@ -185,7 +185,7 @@ class Driver:
                     # img_bin = img_bin[:,:width // 2]
                     # cv2.imshow("Left", img_bin)
                     # Turn the top section white for line following
-                    if self.increment < 50:
+                    if self.increment < 100:
                         self.line_follow(img_bin1, 1)
                         self.increment += 1
                     elif self.road_reader.detect_left_turn(img_bin):
@@ -226,11 +226,12 @@ class Driver:
                 time.sleep(0.5)
                 self.obstacle = True
             elif self.zone == 5 and not self.obstacle:
+                #Moves forward, turns to look at clueboard, then turns back
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
-                self.move.linear.x = 1
+                self.move.linear.x = 0.5
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.move.linear.x = 0
@@ -252,6 +253,7 @@ class Driver:
                 self.zone = 6
                 rospy.loginfo("Moving to the pond straights after clue 5!")
             elif self.zone ==6:
+                #Crosses the road like the little chicken that could
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
@@ -270,33 +272,74 @@ class Driver:
                 self.zone = 7
                 rospy.loginfo("Moving to the yoda entrance after clue 6!")
             elif self.zone == 7:
+                _, width, _ = cv_image.shape
+                cv_image = cv_image[:,width // 7:]
                 if self.motion_detector.detect_movement(cv_image,self.zone):
                     self.zone = 8
                     spawn_position(post_yoda_pos)
                     rospy.loginfo("Following the yoda, the yoda, the yoda wherever he may go :)")
             elif self.zone == 8: #This is right after passing the Yoda land, entering the tunnel
-                #Yoda-land should be completed with car facing the correct way to line-follow
+                #Hard coded mountain climb
+                #back up to see the sign
                 self.move.linear.x = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2)
+                time.sleep(1.5)
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2)
+                time.sleep(4)
+                #zoomin through the tunnel
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(5)
+                time.sleep(5.1)
+                #Robbie deserves a nap
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(1)
-                self.move.angular.z = 1.5
+                #Turn the corner
+                self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.5)
+                time.sleep(2.1)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(4)
+                time.sleep(2.8)
+                #Turn the corner
+                self.move.angular.z = 1.7
+                self.move.linear.x = 0.8
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(2.1)
+                self.move.angular.z = 0
+                self.move.linear.x = 2
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.7)
+                #Turn the corner
+                self.move.angular.z = 1.7
+                self.move.linear.x = 0.8
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(2.1)
+                self.move.angular.z = 0
+                self.move.linear.x = 2
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.6)
+                #Turn the corner to the top
+                self.move.angular.z = 1.7
+                self.move.linear.x = 0.8
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(2.1)
+                self.move.angular.z = 0.5
+                self.move.linear.x = 2
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.4)
+                self.move.angular.z = 1
+                self.move.linear.x = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.3)
+                self.move.angular.z = 0
+                self.move.linear.x = 0.5
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(1.3)
                 self.zone = 9
             elif self.zone == 9:
                 self.move.linear.x = 0

@@ -129,7 +129,7 @@ class RoadProcessing:
                 cv2.drawContours(final_img, [contour], -1, (0), thickness=cv2.FILLED)  # Draw black lines
 
         final_img = cv2.dilate(final_img, dilate_kernel, iterations=1)
-        cv2.imshow("Final",final_img)
+        # cv2.imshow("Final",final_img)
 
         return final_img
 
@@ -187,7 +187,7 @@ class RoadProcessing:
             green_mask = cv2.bitwise_and(line_image, line_image, mask=mask)
 
             line_image = green_mask[:,:,1]
-            cv2.imshow("Green", line_image)
+            # cv2.imshow("Green", line_image)
 
             # Apply thresholding to detect white areas
             _, binary = cv2.threshold(line_image, 100, 255, cv2.THRESH_BINARY)  # Adjust 200 if needed
@@ -400,7 +400,7 @@ class RoadProcessing:
 
         image = image[7 * height // 16: 5 * height // 8, : width // 4]
 
-        cv2.imshow("Left turn search", image)
+        # cv2.imshow("Left turn search", image)
 
         image = image[: height // 2, : width // 4]
 
@@ -411,7 +411,7 @@ class RoadProcessing:
 
         prev_len = 0
 
-        cv2.imshow("Left turn search", image)
+        # cv2.imshow("Left turn search", image)
         
         for contour in contours:
             if len(contour) > prev_len:
@@ -438,12 +438,12 @@ class RoadProcessing:
         image1 = image[7 * height // 16: 5 * height // 8, : width // 4]
         image2 = image[7 * height // 16: 5 * height // 8, 3* width // 4: ]
 
-        cv2.imshow("Left turn search", image)
+        # cv2.imshow("Left turn search", image)
 
         image1 = image1[: height // 2, : width // 4]
         image2 = image2[: height // 2, 3* width // 4 :]
-        cv2.imshow("Left", image1)
-        cv2.imshow("Right",image2)
+        # cv2.imshow("Left", image1)
+        # cv2.imshow("Right",image2)
 
         left_road, left_road_img = self.find_intersection_contour(image1) 
         right_road, right_road_img = self.find_intersection_contour(image2)
