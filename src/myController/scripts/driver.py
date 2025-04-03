@@ -77,7 +77,7 @@ class Driver:
         self.increment = 0
         self.found_left = False
 
-        rospy.sleep(2)  # Ensure publishers are ready
+        rospy.sleep(5)  # Ensure publishers are ready
 
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
