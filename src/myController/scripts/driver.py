@@ -15,7 +15,10 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from road_processing import RoadProcessing
 from motion_detector import MotionDetector
-from side_camera import SideCam
+# from side_camera import SideCam
+from respawn import spawn_position
+
+post_yoda_pos = [-3.97, -2.29, 0.04, 1.08e-07, 4.77e-07, -0.00435, 0.99999]
 
 TEAM_NAME = "Smithies"
 PASSWORD = "Volcan"
@@ -32,7 +35,7 @@ class Driver:
 
         self.road_reader = RoadProcessing()
         self.motion_detector = MotionDetector()
-        self.sidecam = SideCam()
+        # self.sidecam = SideCam()
 
         # self.timer_started = False
         self.timer_ended = False
@@ -40,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 7
+        self.zone = 4
         self.clue = 0
         self.time_zone = 0
 
@@ -270,10 +273,9 @@ class Driver:
                 self.zone = 7
                 rospy.loginfo("Moving to the yoda entrance after clue 6!")
             elif self.zone == 7:
-                if not self.obstacle_passed:
-                    self.obstacle_passed = self.wait_for_movement(cv_image, 1, 0, 1.5)
-                else:
+                if self.motion_detector.detect_movement(cv_image,self.zone):
                     self.zone = 8
+                    spawn_position(post_yoda_pos)
                     rospy.loginfo("Following the yoda, the yoda, the yoda wherever he may go :)")
             elif self.zone == 8: #This is right after passing the Yoda land, entering the tunnel
                 #TODO: Yoda-land should be completed with car facing the correct way to line-follow

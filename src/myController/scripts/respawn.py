@@ -3,8 +3,10 @@
 import rospy
 from gazebo_msgs.srv import SetModelState
 from gazebo_msgs.msg import ModelState
+
+post_yoda_pos = [-3.9734945485900206, -2.2946287212990297, 0.040000584331184835, 1.0836921688152988e-07, 4.770596063590212e-07, -0.004357995372461962, 0.9999905038929592]
  
-def spawn_position(self, position):
+def spawn_position(position):
 
         msg = ModelState()
         msg.model_name = 'B1'
