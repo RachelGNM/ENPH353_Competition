@@ -77,7 +77,7 @@ class Driver:
         self.found_left = False
         #self.waiting = False this was replaced by self.obstacle cuz I need less stuff with the same names
 
-        rospy.sleep(2)  # Ensure publishers are ready
+        rospy.sleep(5)  # Ensure publishers are ready
 
         rospy.on_shutdown(self.stop_timer)  # Ensure the timer stops when script ends
 
