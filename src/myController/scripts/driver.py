@@ -212,7 +212,7 @@ class Driver:
                 rospy.loginfo("Welcome to the grasslands, be wary of losing your feet :)")
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
+                time.sleep(0.3)
                 # self.move.linear.x = 1
                 # self.cmd_vel_pub.publish(self.move)
                 # time.sleep(0.5)
@@ -223,7 +223,7 @@ class Driver:
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
+                time.sleep(0.3)
                 self.obstacle = True
             elif self.zone == 5 and not self.obstacle:
                 #Moves forward, turns to look at clueboard, then turns back
@@ -249,7 +249,7 @@ class Driver:
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
+                time.sleep(0.1)
                 self.zone = 6
                 rospy.loginfo("Moving to the pond straights after clue 5!")
             elif self.zone ==6:
@@ -295,7 +295,7 @@ class Driver:
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(0.5)
                 #Turn the corner
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
