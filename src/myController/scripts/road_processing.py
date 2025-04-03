@@ -15,6 +15,7 @@ from cv_bridge import CvBridge
 class RoadProcessing:
     def __init__(self):
         self.largest_contour = 0
+        self.reach_pond = False
 
     def road_binarize(self, image_feed, zone):
         """
@@ -57,7 +58,7 @@ class RoadProcessing:
             # Get image dimensions
             height, width = img_bin.shape
             return img_bin
-        elif zone > 6:
+        elif zone == 8:
             image_feed = image_feed[height //2:,:,:]
             hsv = cv2.cvtColor(image_feed, cv2.COLOR_BGR2HSV)
 
@@ -252,11 +253,23 @@ class RoadProcessing:
                 largest_area = cv2.contourArea(largest_contour)
                 print(f"Largest Contour Area: {largest_area}")
                 if zone == 5:
-                    if largest_area > 8000:
+                    # Find all white pixels (nonzero pixels)
+                    white_pixels = np.column_stack(np.where(img_bin == 255))
+                    # Check if any white pixel reaches the last column
+                    if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == img_bin.shape[1] - 1 and largest_area > 8000:
+                        rospy.loginfo("White pixels have reached right")
+                        self.reach_pond = True
+                    elif self.reach_pond and largest_area < 5:
+                        self.reach_pond = False
                         return zone, True
-            elif zone == 6:
-                return zone, True
-            #     return zone, False
+                else:
+                    if largest_area > 25000:
+                        self.reach_pond = False
+                        rospy.loginfo("Zone switch")
+                        return zone, True
+            # elif self.reach_pond and zone == 6:
+            #         rospy.loginfo("Zone switch")
+            #         return zone, True
 
             # # Find all white pixels (nonzero pixels)
             # white_pixels = np.column_stack(np.where(img_bin == 255))
@@ -264,10 +277,11 @@ class RoadProcessing:
             # if white_pixels.size > 0 and np.max(white_pixels[:, 1]) == img_bin.shape[1] - 1:
             #     # return zone, True
             #     rospy.loginfo("White pixels have reached right")
-            # else:
             return zone, False
 
         elif zone >6: #looking for fuchsia lines
+
+            # rospy.loginfo("Looking for fuchsia line")
         
             line_image = line_image[3* height // 4:, :]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)

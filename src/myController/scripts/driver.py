@@ -40,7 +40,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 4
         self.clue = 0
         self.time_zone = 0
 
@@ -133,7 +133,7 @@ class Driver:
             self.cmd_vel_pub.publish(self.move)
             time.sleep(3)
             self.clue = 1
-        stop = stopping_line or (self.zone == 7) or truck or self.prev_waiting 
+        stop = stopping_line or (self.zone == 8) or truck or self.prev_waiting 
 
         if stop == False: 
             img_bin = self.road_reader.road_binarize(cv_image, self.zone)
@@ -142,7 +142,7 @@ class Driver:
             self.obstacle = False
             self.increment = 0
             speed_factor = 1
-            if self.zone == 5:
+            if self.zone >= 5:
                 speed_factor = 0.5
             self.line_follow(img_bin,speed_factor)
         else:
@@ -228,14 +228,21 @@ class Driver:
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
-                self.move.linear.x = 0
-                self.move.angular.z = 0.5
+                self.move.linear.x = 1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(0.5)
                 self.move.linear.x = 0
-                self.move.angular.z = -0.5
+                self.move.angular.z = 1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(0.7)
+                self.move.linear.x = 0
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.5)
+                self.move.linear.x = 0
+                self.move.angular.z = -1
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.7)
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
@@ -247,21 +254,18 @@ class Driver:
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
-                self.move.angular.z = 0.5
+                self.move.angular.z = 1
+                self.move.linear.x = 0.7
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
-                self.move.linear.x = 1
-                self.move.angular.z = 0
-                self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(2.5)
                 self.move.linear.x = 0
-                self.move.angular.z = -0.5
+                self.move.angular.z = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1)
+                time.sleep(2)
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
-                self.zone = 6
+                self.zone = 7
                 rospy.loginfo("Moving to the yoda entrance after clue 6!")
             elif self.zone == 7:
                 #TODO: Wait for Yoda to pass then hard-code path through grassland
