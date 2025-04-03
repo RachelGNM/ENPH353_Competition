@@ -40,7 +40,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 4
+        self.zone = 7
         self.clue = 0
         self.time_zone = 0
 
@@ -144,6 +144,8 @@ class Driver:
             speed_factor = 1
             if self.zone >= 5:
                 speed_factor = 0.5
+                if self.zone == 8:
+                    speed_factor = 1.5
             self.line_follow(img_bin,speed_factor)
         else:
             # rospy.loginfo("Stop started")
@@ -268,8 +270,11 @@ class Driver:
                 self.zone = 7
                 rospy.loginfo("Moving to the yoda entrance after clue 6!")
             elif self.zone == 7:
-                #TODO: Wait for Yoda to pass then hard-code path through grassland
-                self.move.linear.x = 0
+                if not self.obstacle_passed:
+                    self.obstacle_passed = self.wait_for_movement(cv_image, 1, 0, 1.5)
+                else:
+                    self.zone = 8
+                    rospy.loginfo("Following the yoda, the yoda, the yoda wherever he may go :)")
             elif self.zone == 8: #This is right after passing the Yoda land, entering the tunnel
                 #TODO: Yoda-land should be completed with car facing the correct way to line-follow
                 self.move.linear.x = 0.8
@@ -419,7 +424,7 @@ class Driver:
             rospy.loginfo("Previous waiting was activated")
             if self.obstacle:
                 #if there is movement found and we're waiting, then run forward
-                if not self.motion_detector.detect_movement(image, self.zone):
+                if not self.motion_detector.detect_movement(image, self.zone) or self.zone == 8:
                     time.sleep(1)
                     self.move.linear.x = forward_movement
                     self.move.angular.z = turn

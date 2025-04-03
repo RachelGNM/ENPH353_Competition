@@ -283,7 +283,7 @@ class RoadProcessing:
 
             # rospy.loginfo("Looking for fuchsia line")
         
-            line_image = line_image[3* height // 4:, :]
+            line_image = line_image[3* height // 4:, width // 2:]
             hsv = cv2.cvtColor(line_image, cv2.COLOR_BGR2HSV)
 
             height_after, _, _ = line_image.shape
@@ -326,8 +326,6 @@ class RoadProcessing:
             if found:
                 if zone == 0:
                     zone = 1
-                elif zone > 6:
-                    zone += 1
 
             # Return True if the white line reaches the threshold
             return zone, found

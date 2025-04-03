@@ -60,7 +60,7 @@ class MotionDetector:
 
             contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            cv2.imshow("Red", image)
+            # cv2.imshow("Red", image)
 
             expected_contours = 2
         elif zone == 3:
@@ -77,7 +77,25 @@ class MotionDetector:
 
             contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            cv2.imshow("truck contours", img_bin)
+            # cv2.imshow("truck contours", img_bin)
+        elif zone == 7:
+            expected_contours = 1
+
+            # Define HSV range for blue
+            lower_brown = np.array([150, 0, 0])  # Lower bound
+            upper_brown = np.array([255, 60, 60])  # Upper bound 
+
+            # Create mask
+            brown_mask = cv2.inRange(hsv, lower_brown, upper_brown)
+
+            # Convert all previously white pixels (255) to black (0)
+            processed_image = cv2.bitwise_and(image, image, mask=brown_mask)
+
+            line_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+            _, img_bin = cv2.threshold(line_image, 10, 255, cv2.THRESH_BINARY)
+
+            contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) > expected_contours:
             rospy.loginfo(f"More than expected contours: {len(contours)}")
         else:
