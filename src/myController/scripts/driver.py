@@ -146,8 +146,8 @@ class Driver:
                 speed_factor = 0.8
                 if self.zone == 9:
                     speed_factor = 0
-            elif self.zone == 1:
-                speed_factor = 0.9
+            elif self.zone == 0:
+                speed_factor = 0.8
             self.line_follow(img_bin,speed_factor)
         else:
             # rospy.loginfo("Stop started")
