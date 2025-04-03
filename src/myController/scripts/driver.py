@@ -43,7 +43,7 @@ class Driver:
         self.endpoint = 240
 
         #this is to map where the robot is on the map
-        self.zone = 0
+        self.zone = 4
         self.clue = 0
         self.time_zone = 0
 
@@ -143,9 +143,11 @@ class Driver:
             self.increment = 0
             speed_factor = 1
             if self.zone >= 5:
-                speed_factor = 0.5
+                speed_factor = 0.8
                 if self.zone == 9:
                     speed_factor = 0
+            elif self.zone == 1:
+                speed_factor = 0.9
             self.line_follow(img_bin,speed_factor)
         else:
             # rospy.loginfo("Stop started")
@@ -235,17 +237,21 @@ class Driver:
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.move.linear.x = 0
-                self.move.angular.z = 1.1
+                self.move.angular.z = 1.2
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.7)
-                self.move.linear.x = 0
+                self.move.linear.x = 1
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.5)
+                time.sleep(0.6)
                 self.move.linear.x = 0
-                self.move.angular.z = -1.1
+                self.move.angular.z = -1.2
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.7)
+                self.move.linear.x = 1
+                self.move.angular.z = 0
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.6)
                 self.move.linear.x = 0
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
