@@ -131,7 +131,7 @@ class Driver:
             self.move.linear.x = 0
             self.move.angular.z = 0
             self.cmd_vel_pub.publish(self.move)
-            time.sleep(3)
+            time.sleep(6)
             self.clue = 1
         stop = stopping_line or (self.zone == 8) or truck or self.prev_waiting 
 
@@ -185,7 +185,7 @@ class Driver:
                     # img_bin = img_bin[:,:width // 2]
                     # cv2.imshow("Left", img_bin)
                     # Turn the top section white for line following
-                    if self.increment < 100:
+                    if self.increment < 200:
                         self.line_follow(img_bin1, 1)
                         self.increment += 1
                     elif self.road_reader.detect_left_turn(img_bin):
@@ -261,11 +261,11 @@ class Driver:
                 self.move.angular.z = 1
                 self.move.linear.x = 0.7
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.5)
+                time.sleep(5)
                 self.move.linear.x = 0
                 self.move.angular.z = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2)
+                time.sleep(4)
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
@@ -283,14 +283,14 @@ class Driver:
                 #back up to see the sign
                 self.move.linear.x = -1
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.5)
+                time.sleep(3)
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(4)
                 #zoomin through the tunnel
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(5.1)
+                time.sleep(10.2)
                 #Robbie deserves a nap
                 self.move.linear.x = 0
                 self.move.angular.z = 0
@@ -300,46 +300,46 @@ class Driver:
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.8)
+                time.sleep(5.6)
                 #Turn the corner
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.7)
+                time.sleep(3.4)
                 #Turn the corner
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.6)
+                time.sleep(3.2)
                 #Turn the corner to the top
                 self.move.angular.z = 1.7
                 self.move.linear.x = 0.8
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(2.1)
+                time.sleep(4.2)
                 self.move.angular.z = 0.5
                 self.move.linear.x = 2
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.4)
+                time.sleep(0.8)
                 self.move.angular.z = 1
                 self.move.linear.x = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.3)
+                time.sleep(2.6)
                 self.move.angular.z = 0
                 self.move.linear.x = 0.5
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(1.3)
+                time.sleep(2.6)
                 self.zone = 9
             elif self.zone == 9:
                 self.move.linear.x = 0

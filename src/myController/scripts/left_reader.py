@@ -151,6 +151,7 @@ class clueReader:
             "C": 3,
             "P": 5,
             "W": 7,
+            "B": 8,
         }
 
 
@@ -206,7 +207,7 @@ class clueReader:
                 best_clue = max(matching_clues, key=lambda x: len(x[1]))
                 best_type, best_value = best_clue
 
-                location = self.clue_location_lookup.get(best_type[0], 0)  # default to 0
+                location = self.clue_location_lookup.get(best_type[0], 9)  # default to 9
                 rospy.loginfo(f"Publishing best clue '{best_value}' of type '{best_type}' for prefix '{prefix}'")
                 msg = f"TeamName,password,{location},{best_value}"
                 self.score_pub.publish(String(data=msg))
