@@ -237,7 +237,7 @@ class Driver:
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.5)
                 self.move.linear.x = 0
-                self.move.angular.z = 1.2
+                self.move.angular.z = 1.5
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.7)
                 self.move.linear.x = 1
@@ -245,9 +245,13 @@ class Driver:
                 self.cmd_vel_pub.publish(self.move)
                 time.sleep(0.6)
                 self.move.linear.x = 0
-                self.move.angular.z = -1.2
+                self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
-                time.sleep(0.7)
+                time.sleep(0.3)
+                self.move.linear.x = 0
+                self.move.angular.z = -1.3
+                self.cmd_vel_pub.publish(self.move)
+                time.sleep(0.4)
                 self.move.linear.x = 1
                 self.move.angular.z = 0
                 self.cmd_vel_pub.publish(self.move)
